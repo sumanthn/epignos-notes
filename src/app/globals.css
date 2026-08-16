@@ -165,6 +165,7 @@ a { color: inherit; }
 .note-footer { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 22px; border-top: 1px solid var(--border); }
 .note-footer-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
 .workspace-error { max-width: 410px; overflow: hidden; color: var(--danger); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+.autosave-confirmation { min-height: 38px; display: inline-flex; align-items: center; padding: 0 4px; color: var(--success); font-size: 0.78rem; font-weight: 680; white-space: nowrap; }
 .empty-editor { grid-row: 1 / -1; place-self: center; max-width: 520px; padding: 40px; text-align: center; }
 .empty-editor h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 2.6rem; font-weight: 500; }
 .empty-editor > p:not(.eyebrow, .form-error) { margin: 16px 0 26px; color: var(--muted); line-height: 1.6; }

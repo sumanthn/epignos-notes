@@ -187,3 +187,11 @@ sidebar note list and makes that book the destination for new notes. Workspace
 search still searches all active notes and switches to a result's book when the
 result is opened. Book and note creation validate that the selected book is
 active and belongs to the signed-in user's organization and workspace.
+
+## 2026-08-16: explicit autosave feedback
+
+Notes autosave about 900 milliseconds after the user stops typing. A disabled
+Save button incorrectly looked like the editor was blocked, so the saved state
+is now rendered as `✓ Saved automatically`. While changes are pending, the same
+footer position shows an active `Save now` button; a failed attempt shows
+`Retry save`. The top-bar state uses the same explicit autosave wording.

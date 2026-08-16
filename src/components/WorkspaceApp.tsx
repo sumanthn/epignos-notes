@@ -476,7 +476,7 @@ export function WorkspaceApp({
         </label>
         <div className="workspace-account">
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
-            {saveState}
+            {saveState === "Saved" ? "Saved automatically" : saveState}
           </span>
           <details className="user-menu">
             <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
@@ -677,7 +677,18 @@ export function WorkspaceApp({
                 <div className="note-footer-right">
                   {error && <span className="workspace-error" role="alert">{error}</span>}
                   <button className="button button-secondary button-small" type="button" onClick={exportNote}>Export</button>
-                  <button className="button button-small" type="button" onClick={() => void saveNote(selected)} disabled={!dirty || saveState === "Saving…"}>Save</button>
+                  {!dirty && saveState === "Saved" ? (
+                    <span className="autosave-confirmation" role="status">✓ Saved automatically</span>
+                  ) : (
+                    <button
+                      className="button button-small"
+                      type="button"
+                      onClick={() => void saveNote(selected)}
+                      disabled={saveState === "Saving…"}
+                    >
+                      {saveState === "Save failed" ? "Retry save" : saveState === "Saving…" ? "Saving…" : "Save now"}
+                    </button>
+                  )}
                 </div>
               </footer>
             </>

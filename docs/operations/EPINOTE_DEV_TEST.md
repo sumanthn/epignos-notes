@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-book-creation
-/opt/epinote/current -> /opt/epinote/releases/20260816-book-creation
+/opt/epinote/releases/20260816-autosave-feedback
+/opt/epinote/current -> /opt/epinote/releases/20260816-autosave-feedback
 ```
 
 ## Service layout
@@ -225,3 +225,12 @@ created and renamed a note inside it, reloaded the workspace, and confirmed the
 book-note relationship directly in MongoDB. A user from a separate temporary
 organization received `404` when attempting to create a note in that book. Both
 temporary tenants were removed afterward.
+
+## 2026-08-16 autosave feedback
+
+The editor still autosaves after roughly 900 milliseconds, but no longer
+represents the saved state as a disabled Save button. The footer and top bar show
+`Saved automatically` after persistence, `Save now` while changes are pending,
+and `Retry save` after a failed attempt. The existing Sumanth note was verified
+in MongoDB at revision 6 with a recent timestamp and non-empty stored content;
+the content itself was not printed during the check.
