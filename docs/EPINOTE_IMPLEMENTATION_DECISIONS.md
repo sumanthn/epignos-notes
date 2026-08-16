@@ -216,6 +216,27 @@ downloads `.txt` so a user never needs Markdown knowledge for ordinary notes.
 The API also normalizes accidental Markdown headings, bullets, bold markers,
 inline code, and code fences before showing or applying an AI proposal.
 
+## 2026-08-16: summary-first organization and title ownership
+
+Accepted organization proposals render a short `Summary` section at the top of
+the note and store the summary separately in `approvedAi.summary`. The complete
+source material follows the summary. On later organization requests, EpiNote
+removes the exact previously approved summary from the model input so it does not
+compound or duplicate generated text.
+
+The AI may infer a title only when the current title is exactly `Untitled` or
+`Untitled note`. Any user-written title is preserved by server-side logic even if
+the model suggests a replacement. Prompt version `organize-v3-summary` prevents
+reuse of older proposals without summaries.
+
+The configured model is upgraded from `openai/gpt-oss-20b` to
+`openai/gpt-oss-120b`. It preserves the same structured-output integration while
+providing a stronger model for title inference, summarization, and organization.
+Organization uses low reasoning effort because this is a constrained text
+transformation, and excludes reasoning tokens from the response. Proposal caching
+also includes the model identifier so a model change cannot reuse another model's
+pending result.
+
 ## 2026-08-16: explicit autosave feedback
 
 Notes autosave about 900 milliseconds after the user stops typing. A disabled

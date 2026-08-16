@@ -12,7 +12,7 @@ const schema = z.object({
   COOKIE_SECURE: booleanString.default(false),
   AUTH_HMAC_SECRET: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(20).optional(),
-  OPENROUTER_MODEL: z.string().min(3).default("openai/gpt-oss-20b"),
+  OPENROUTER_MODEL: z.string().min(3).default("openai/gpt-oss-120b"),
 });
 
 export type ServerEnv = z.infer<typeof schema>;

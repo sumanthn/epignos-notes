@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-plain-text-organize
-/opt/epinote/current -> /opt/epinote/releases/20260816-plain-text-organize
+/opt/epinote/releases/20260816-summary-title-v3-low
+/opt/epinote/current -> /opt/epinote/releases/20260816-summary-title-v3-low
 ```
 
 ## Service layout
@@ -258,9 +258,9 @@ positions, and note content were not changed.
 
 The note footer exposes `Organize` when the current note has saved text. It opens
 an in-editor panel that shows a strict structured-output proposal and keeps the
-original unchanged until `Apply organization` is selected. The configured model
-is `openai/gpt-oss-20b`; a direct server probe returned valid schema-constrained
-JSON without printing generated content.
+original unchanged until `Apply organization` is selected. The initial model was
+`openai/gpt-oss-20b`; a direct server probe returned valid schema-constrained JSON
+without printing generated content.
 
 Live workflow verification used a temporary isolated tenant and confirmed:
 
@@ -306,3 +306,36 @@ public HTTPS health check              database reachable
 
 The temporary user, session, organization, workspace, book, note, proposal, and
 revision snapshot were removed after verification.
+
+## 2026-08-16 summary-first organization and GPT-OSS 120B
+
+The active model is `openai/gpt-oss-120b` with low reasoning effort and a
+60-second bounded request timeout. The previous environment file is retained at
+`/home/epignos/.config/epinote/app.env.before-gpt-oss-120b-20260816`; both files
+have mode `0600`.
+
+Prompt version `organize-v3-summary` returns a title, summary, and complete body.
+The server changes a title only when it is `Untitled` or `Untitled note`, prepends
+one `Summary` section to the accepted note, and stores the summary in
+`approvedAi.summary`. User-written titles are preserved regardless of model
+output. The exact approved summary is removed from subsequent model input to
+avoid compounding generated text.
+
+Live verification used two notes in an isolated temporary tenant and confirmed:
+
+```text
+untitled title inferred                yes
+user-written title preserved           yes
+summary first and present once         yes
+names, URL, and timestamps preserved   yes
+both accepted notes                    revision 3
+accepted proposals                     2
+proposal model                          openai/gpt-oss-120b
+prompt version                          organize-v3-summary
+approved summaries stored              2
+before-ai-apply snapshots               2
+accepted proposals linked               2
+public HTTPS health                     database reachable
+```
+
+The temporary tenant and all associated data were removed after verification.

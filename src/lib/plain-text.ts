@@ -26,3 +26,25 @@ export function normalizeOrganizedPlainText(value: string): string {
 export function normalizeOrganizedTitle(value: string): string {
   return removeInlineMarkdown(value.replace(MARKDOWN_HEADING, "")).trim();
 }
+
+export function normalizeOrganizedSummary(value: string): string {
+  return normalizeOrganizedPlainText(value).replace(/\s*\n\s*/g, " ").trim();
+}
+
+export function isUntitledNoteTitle(value: string): boolean {
+  const normalized = value.trim().toLocaleLowerCase();
+  return normalized === "untitled" || normalized === "untitled note";
+}
+
+export function noteTextWithSummary(summary: string, body: string): string {
+  return `Summary\n${summary.trim()}\n\n${body.trim()}`.trim();
+}
+
+export function noteTextWithoutApprovedSummary(body: string, summary: unknown): string {
+  if (typeof summary !== "string" || !summary.trim()) return body.trim();
+  const prefix = `Summary\n${summary.trim()}`;
+  const trimmed = body.trim();
+  if (trimmed === prefix) return "";
+  if (trimmed.startsWith(`${prefix}\n\n`)) return trimmed.slice(prefix.length + 2).trim();
+  return trimmed;
+}
