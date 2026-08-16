@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-sidebar-refinement
-/opt/epinote/current -> /opt/epinote/releases/20260816-sidebar-refinement
+/opt/epinote/releases/20260816-library-quick-capture
+/opt/epinote/current -> /opt/epinote/releases/20260816-library-quick-capture
 ```
 
 ## Service layout
@@ -218,8 +218,8 @@ temporary account and tenant were removed afterward.
 
 ## 2026-08-16 book creation
 
-`Unsorted` is presented as the workspace's default Inbox. The Books plus control
-creates a named book inline; selecting it filters the note list, and new notes
+`Quick Capture` is the workspace's permanent default book. The Library plus
+control creates a named book inline; selecting it filters the note list, and new notes
 are stored in that selected book. Live verification created a `Research` book,
 created and renamed a note inside it, reloaded the workspace, and confirmed the
 book-note relationship directly in MongoDB. A user from a separate temporary
@@ -237,7 +237,16 @@ the content itself was not printed during the check.
 
 ## 2026-08-16 sidebar refinement
 
-The `Unsorted` system book now carries the human-facing label `Capture` rather
-than the email-oriented `Inbox`. The left navigation uses solid, restrained
-blue-gray surfaces, a cobalt selection rail, a soft capture badge, and quiet
-hover states. It intentionally contains no gradients or high-saturation fills.
+The Books heading is now `Library`, and the system book is displayed as
+`Quick Capture` without a secondary badge. Its internal `systemKey: "unsorted"`
+remains stable. The left navigation uses solid, restrained blue-gray surfaces,
+a cobalt selection rail, and quiet hover states. It intentionally contains no
+gradients or high-saturation fills.
+
+## 2026-08-16 Library and Quick Capture naming
+
+The sidebar section is `Library` and the permanent system book is displayed as
+`Quick Capture`. The database migration matched one existing system book by
+`systemKey: "unsorted"`, updated its visible name and normalized name, and left
+all three linked note relationships unchanged. The stable system key, book ID,
+positions, and note content were not changed.

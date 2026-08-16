@@ -503,7 +503,7 @@ export function WorkspaceApp({
       <div className="workspace-grid">
         <aside className="notes-sidebar">
           <div className="sidebar-heading">
-            <span>Books</span>
+            <span>Library</span>
             <button
               type="button"
               aria-label="Create book"
@@ -514,7 +514,7 @@ export function WorkspaceApp({
               }}
             >+</button>
           </div>
-          <div className="book-list" aria-label="Books">
+          <div className="book-list" aria-label="Library">
             {books.map((book) => (
               <button
                 className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
@@ -525,7 +525,6 @@ export function WorkspaceApp({
               >
                 <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
                 <strong>{book.name}</strong>
-                {book.systemKey === "unsorted" && <small>Capture</small>}
               </button>
             ))}
             {addingBook && (
@@ -634,7 +633,7 @@ export function WorkspaceApp({
             <>
               <div className="note-header">
                 <p className="note-path">
-                  {initialWorkspace.organization.name} / {activeBook?.name ?? "Unsorted"}
+                  {initialWorkspace.organization.name} / {activeBook?.name ?? "Quick Capture"}
                 </p>
                 <input
                   className="note-title-input"
@@ -694,7 +693,7 @@ export function WorkspaceApp({
             </>
           ) : (
             <div className="empty-editor">
-              <p className="eyebrow">Unsorted</p>
+              <p className="eyebrow">{activeBook?.name ?? "Quick Capture"}</p>
               <h1>Begin with a useful note.</h1>
               <p>Capture the thought now. You can organize and connect it later.</p>
               <button className="button" type="button" onClick={createNote}>Create your first note</button>

@@ -49,7 +49,7 @@ Visitor -> landing page -> register/login -> protected workspace
 ```
 
 It includes the real hierarchy by automatically creating a personal
-organization, `My Workspace`, and its required `Unsorted` book for a new user.
+organization, `My Workspace`, and its required `Quick Capture` system book for a new user.
 It does not include attachments, rich block editing, search, invitations,
 password reset email, or AI behavior yet.
 
@@ -176,18 +176,18 @@ of physically removing its data, preserving the recoverable lifecycle defined
 by the storage design. Both mutations remain scoped to the signed-in user's
 organization and workspace and use the note revision to prevent stale changes.
 
-## 2026-08-16: usable books and Unsorted
+## 2026-08-16: usable books and Quick Capture
 
-`Unsorted` is the workspace's permanent system book and acts as its default
-inbox for notes captured before the user chooses an organizational home. It is
-identified by `systemKey: "unsorted"`, not by its display position or name.
+`Quick Capture` is the workspace's permanent system book for notes captured
+before the user chooses an organizational home. It is identified internally by
+the stable `systemKey: "unsorted"`, not by its display position or visible name.
+The sidebar section is labeled `Library`, while the underlying domain entity
+remains a Book. No redundant badge is shown beside `Quick Capture`.
 
-The UI describes this role as `Capture` rather than `Inbox`, avoiding email
-language while keeping the stored system identity unchanged. The sidebar uses
-quiet solid blue-gray surfaces and a cobalt selection rail; it does not use
-gradients or saturated decorative color.
+The sidebar uses quiet solid blue-gray surfaces and a cobalt selection rail; it
+does not use gradients or saturated decorative color.
 
-The Books plus control creates a named book inline. Selecting a book scopes the
+The Library plus control creates a named book inline. Selecting a book scopes the
 sidebar note list and makes that book the destination for new notes. Workspace
 search still searches all active notes and switches to a result's book when the
 result is opened. Book and note creation validate that the selected book is

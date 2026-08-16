@@ -43,8 +43,8 @@ export default function LandingPage() {
         </div>
         <div className="preview-body">
           <aside className="preview-sidebar">
-            <span className="preview-label">BOOKS</span>
-            <strong>Unsorted</strong>
+            <span className="preview-label">LIBRARY</span>
+            <strong>Quick Capture</strong>
             <span className="preview-note active">Product thinking</span>
             <span className="preview-note">Research notes</span>
             <span className="preview-note">Ideas to revisit</span>

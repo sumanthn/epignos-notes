@@ -61,9 +61,10 @@ Definitions:
 - AI metadata contains suggestions and derived information, not canonical text.
 - Linked concepts connect notes through evidence-backed relationships.
 
-Every note belongs to a book. Each new workspace receives an `Unsorted` book so
-quick capture never forces the user to make an organizational decision first.
-`Unsorted` is displayed as a normal book in the approved navigation hierarchy.
+Every note belongs to a book. Each new workspace receives a `Quick Capture`
+system book so capturing never forces the user to organize first. Its stable
+internal key remains `unsorted`, while `Quick Capture` is displayed as a normal
+book in the approved navigation hierarchy.
 
 ## 3. First real user and job
 
@@ -162,7 +163,7 @@ The first vertical slice must complete this workflow end to end:
 
 1. A user signs in.
 2. The user enters an organization workspace.
-3. The user opens a book or uses the workspace's `Unsorted` book.
+3. The user opens a book or uses the workspace's `Quick Capture` book.
 4. The user creates a note.
 5. The user types or pastes real content and optionally adds an image.
 6. The note autosaves and visibly reports saved, saving, offline, or failed.
@@ -201,7 +202,7 @@ Later, when an email provider is selected:
 ### 7.2 Workspaces and books
 
 - Create, rename, switch, and archive workspaces.
-- Automatically create `Unsorted` for each workspace.
+- Automatically create `Quick Capture` for each workspace.
 - Create, rename, reorder, and archive books.
 - Show books and nested notes in the left tree.
 - Archive instead of hard-delete by default.
@@ -443,7 +444,7 @@ archivedAt
 Indexes:
 
 - `organizationId, workspaceId, status, position`.
-- Unique partial index for the active system `Unsorted` book per workspace.
+- Unique partial index for the active system book (`systemKey: unsorted`) per workspace.
 
 ### `notes`
 
@@ -865,7 +866,7 @@ Exit criteria:
 Deliver:
 
 - Authentication and sessions.
-- Organization, workspace, `Unsorted` book, and membership bootstrap.
+- Organization, workspace, `Quick Capture` system book, and membership bootstrap.
 - Book/note tree.
 - Basic editor.
 - Autosave with revision conflict handling.

@@ -52,7 +52,8 @@ Invariants:
 - A book belongs to exactly one workspace and organization.
 - A note belongs to exactly one book, workspace, and organization.
 - Each workspace has exactly one system book with `systemKey: "unsorted"`.
-- Quick capture uses `Unsorted` without changing the visible hierarchy.
+- The system book is displayed as `Quick Capture` without changing the hierarchy
+  or its stable `systemKey: "unsorted"` identity.
 - Moving a note may change `bookId` only within its current workspace.
 - Cross-workspace copying creates a new note with source provenance.
 - An ObjectId presented by a client is never proof of authorization.
@@ -270,7 +271,7 @@ unique { organizationId: 1, slug: 1 }
 Workspace creation is idempotent:
 
 1. Create the workspace.
-2. Create its `Unsorted` book under a unique index.
+2. Create its `Quick Capture` system book under a unique index.
 3. Retry step two safely if it fails.
 
 Workspace renaming changes only `name` and `updatedAt`. The stable workspace ID,
@@ -298,7 +299,7 @@ archivedAt
 
 Rules:
 
-- `Unsorted` cannot be renamed or archived.
+- The `Quick Capture` system book cannot be renamed or archived.
 - User-created books may share display names in the MVP.
 - Use simple integer positions and bounded sibling updates for reorder.
 - Archiving a book hides it and its notes from ordinary navigation without
@@ -581,7 +582,7 @@ Indexes:
 Create note:
 
 - Resolve authorized active workspace.
-- Resolve requested active book or `Unsorted`.
+- Resolve the requested active book or `Quick Capture`.
 - Store empty canonical content with `revision: 1`.
 
 Move note:
@@ -594,11 +595,11 @@ Archive note:
 - Create a `before-archive` snapshot.
 - Set archived status/time.
 - Preserve attachments and concept links.
-- Restore to the original active book or `Unsorted` if unavailable.
+- Restore to the original active book or `Quick Capture` if unavailable.
 
 Archive book:
 
-- `Unsorted` cannot be archived.
+- `Quick Capture` cannot be archived.
 - Hide the book and its notes without rewriting all child note records.
 - Enforce book lifecycle on direct note reads so stale UI cannot bypass it.
 
@@ -857,7 +858,7 @@ and migrations are safe to rerun.
 ### Slice 2: identity and tenant bootstrap
 
 - Users, sessions, organizations, memberships, workspaces, books.
-- Create first workspace and `Unsorted` idempotently.
+- Create the first workspace and `Quick Capture` system book idempotently.
 - Tenant-aware repository boundaries.
 
 Acceptance: two organizations cannot access each other's records; last-owner and
@@ -921,7 +922,7 @@ Acceptance: AI outage cannot block or lose notes; stale proposals cannot apply.
 - Canonical editor JSON is stored; other representations are derived.
 - Autosave uses expected revisions, not last-write-wins.
 - Files use GridFS plus tenant-scoped attachment metadata.
-- Quick capture uses the system `Unsorted` book.
+- Quick capture uses the system book displayed as `Quick Capture`.
 - AI proposals/jobs are separate from approved note data.
 - Concepts use ordinary collections, not a graph database.
 - Keyword search precedes vector infrastructure.
