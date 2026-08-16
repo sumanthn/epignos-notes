@@ -265,3 +265,20 @@ Multiple “libraries” map to the existing Workspace layer rather than a new
 entity. A project is a Workspace; each project has its own Library of books and
 notes. The next vertical slice is workspace creation and switching with all
 book/note APIs scoped to the selected workspace.
+
+## 2026-08-16: moving notes and deleting empty books
+
+A note card can be dragged onto another book in the same Library to move it.
+The note action menu also provides a `Move to` selector so the workflow remains
+usable with a keyboard or touch device. A move changes only the note's `bookId`,
+`updatedAt`, `updatedBy`, and revision; its title, canonical content, attachments,
+AI metadata, and linked concepts remain intact. The API validates the expected
+revision and scopes both the note and destination book to the signed-in user's
+organization and workspace.
+
+User-created books have a quiet three-dot menu for rename and delete. Delete is
+available only when the book has no active notes, is confirmed by the user, and
+archives rather than physically removes the book. The server performs its own
+active-note check and returns a conflict if the book is not empty. Quick Capture
+cannot be renamed or deleted because every workspace needs a permanent capture
+destination.

@@ -54,6 +54,11 @@ export function WorkspaceApp({
   const [bookRenameDraft, setBookRenameDraft] = useState("");
   const [bookRenameSaving, setBookRenameSaving] = useState(false);
   const [bookRenameError, setBookRenameError] = useState("");
+  const [bookActionId, setBookActionId] = useState<string | null>(null);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
+  const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
+  const [dropBookId, setDropBookId] = useState<string | null>(null);
+  const [movingNoteId, setMovingNoteId] = useState<string | null>(null);
   const [organizePanelOpen, setOrganizePanelOpen] = useState(false);
   const [organizeState, setOrganizeState] = useState<OrganizeState>("idle");
   const [organizeProposal, setOrganizeProposal] = useState<OrganizeProposal | null>(null);
@@ -104,8 +109,8 @@ export function WorkspaceApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  const saveNote = useCallback(async (note: Note): Promise<boolean> => {
-    if (savingRef.current) return false;
+  const saveNote = useCallback(async (note: Note): Promise<number | null> => {
+    if (savingRef.current) return null;
     savingRef.current = true;
     setSaveState("Saving…");
     setError("");
@@ -128,20 +133,22 @@ export function WorkspaceApp({
       if (!response.ok || !data.note) {
         setError(data.error || "Unable to save this note.");
         setSaveState("Save failed");
-        return false;
+        return null;
       }
 
       const latest = notesRef.current.find((item) => item.id === note.id);
       const unchangedSinceRequest =
         latest?.title === note.title && latest?.body === note.body;
 
-      setNotes((current) =>
-        current.map((item) =>
+      setNotes((current) => {
+        const next = current.map((item) =>
           item.id === note.id
             ? { ...item, revision: data.note!.revision, updatedAt: data.note!.updatedAt }
             : item,
-        ),
-      );
+        );
+        notesRef.current = next;
+        return next;
+      });
 
       if (unchangedSinceRequest) {
         window.localStorage.removeItem(`epinote:draft:${note.id}`);
@@ -150,11 +157,11 @@ export function WorkspaceApp({
       } else {
         setSaveState("Unsaved changes");
       }
-      return true;
+      return data.note.revision;
     } catch {
       setError("EpiNote is unreachable. Your draft is still in this browser.");
       setSaveState("Save failed");
-      return false;
+      return null;
     } finally {
       savingRef.current = false;
     }
@@ -229,6 +236,7 @@ export function WorkspaceApp({
 
   async function chooseBook(bookId: string) {
     closeBookCreator();
+    setBookActionId(null);
     if (bookId === activeBookId) return;
     if (dirty && selected && !(await saveNote(selected))) return;
     setActiveBookId(bookId);
@@ -257,6 +265,7 @@ export function WorkspaceApp({
 
   function beginBookRename(book: WorkspacePayload["books"][number]) {
     if (book.systemKey === "unsorted" || bookRenameSaving) return;
+    setBookActionId(null);
     closeBookCreator();
     setBookRenameDraft(book.name);
     setBookRenameError("");
@@ -524,6 +533,130 @@ export function WorkspaceApp({
     }
   }
 
+  async function moveNote(noteId: string, targetBookId: string) {
+    const note = notesRef.current.find((item) => item.id === noteId);
+    if (!note || note.bookId === targetBookId || movingNoteId) {
+      setDraggedNoteId(null);
+      setDropBookId(null);
+      return;
+    }
+
+    setMovingNoteId(noteId);
+    setNoteActionId(null);
+    setError("");
+    try {
+      let expectedRevision = note.revision;
+      if (note.id === selectedId && dirty) {
+        const savedRevision = await saveNote(note);
+        if (!savedRevision) {
+          if (savingRef.current) {
+            setError("Wait for the current save to finish, then move the note.");
+          }
+          return;
+        }
+        expectedRevision = savedRevision;
+      }
+
+      const response = await fetch(`/api/notes/${note.id}/move`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId: targetBookId, expectedRevision }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        note?: { id: string; bookId: string; revision: number; updatedAt: string };
+      };
+      if (!response.ok || !data.note) {
+        setError(data.error || "Unable to move this note.");
+        return;
+      }
+
+      setNotes((current) => {
+        const next = current.map((item) =>
+          item.id === data.note!.id
+            ? {
+                ...item,
+                bookId: data.note!.bookId,
+                revision: data.note!.revision,
+                updatedAt: data.note!.updatedAt,
+              }
+            : item,
+        );
+        notesRef.current = next;
+        return next;
+      });
+      setBooks((current) =>
+        current.map((book) => {
+          if (book.id === note.bookId) {
+            return { ...book, noteCount: Math.max(0, book.noteCount - 1) };
+          }
+          if (book.id === data.note!.bookId) {
+            return { ...book, noteCount: book.noteCount + 1 };
+          }
+          return book;
+        }),
+      );
+      if (note.id === selectedId) {
+        setActiveBookId(data.note.bookId);
+        setQuery("");
+        setDirty(false);
+        setSaveState("Saved");
+        closeOrganizePanel();
+      }
+    } catch {
+      setError("EpiNote is unreachable. The note was not moved.");
+    } finally {
+      setMovingNoteId(null);
+      setDraggedNoteId(null);
+      setDropBookId(null);
+    }
+  }
+
+  async function deleteBook(book: WorkspacePayload["books"][number]) {
+    setBookActionId(null);
+    if (book.systemKey === "unsorted") return;
+    if (book.noteCount > 0) {
+      setError("Move or delete every note before deleting this book.");
+      return;
+    }
+    if (!window.confirm(`Delete the empty book “${book.name}”?`)) return;
+
+    setDeletingBookId(book.id);
+    setError("");
+    try {
+      const response = await fetch(`/api/books/${book.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as { error?: string; ok?: boolean };
+      if (!response.ok || !data.ok) {
+        setError(data.error || "Unable to delete this book.");
+        return;
+      }
+
+      const remaining = books.filter((item) => item.id !== book.id);
+      setBooks(remaining);
+      if (activeBookId === book.id) {
+        const fallback = remaining.find((item) => item.systemKey === "unsorted") ?? remaining[0];
+        setActiveBookId(fallback?.id ?? null);
+        setSelectedId(
+          fallback
+            ? notesRef.current.find((item) => item.bookId === fallback.id)?.id ?? null
+            : null,
+        );
+        setDirty(false);
+        setSaveState("Saved");
+        setPreview(false);
+        closeOrganizePanel();
+      }
+    } catch {
+      setError("EpiNote is unreachable. The book was not deleted.");
+    } finally {
+      setDeletingBookId(null);
+    }
+  }
+
   function closeOrganizePanel() {
     setOrganizePanelOpen(false);
     setOrganizeState("idle");
@@ -696,7 +829,7 @@ export function WorkspaceApp({
             >{addingBook ? "×" : "+"}</button>
           </div>
           <div className="book-list" aria-label="Library">
-            {books.map((book) => (
+            {books.map((book) =>
               renamingBookId === book.id ? (
                 <form
                   className="book-inline-rename"
@@ -722,25 +855,78 @@ export function WorkspaceApp({
                   {bookRenameError && <span role="alert">{bookRenameError}</span>}
                 </form>
               ) : (
-                <button
-                  className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
-                  type="button"
+                <div
+                  className={`book-row-shell ${dropBookId === book.id ? "drop-target" : ""}`}
                   key={book.id}
-                  onClick={() => void chooseBook(book.id)}
-                  onDoubleClick={() => beginBookRename(book)}
-                  onKeyDown={(event) => {
-                    if (event.key === "F2") beginBookRename(book);
+                  onDragEnter={(event) => {
+                    const dragged = notesRef.current.find((note) => note.id === draggedNoteId);
+                    if (!dragged || dragged.bookId === book.id) return;
+                    event.preventDefault();
+                    setDropBookId(book.id);
                   }}
-                  title={book.systemKey === "unsorted" ? "Default place for quick captures" : "Double-click to rename"}
+                  onDragOver={(event) => {
+                    const dragged = notesRef.current.find((note) => note.id === draggedNoteId);
+                    if (!dragged || dragged.bookId === book.id) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDragLeave={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                      setDropBookId((current) => (current === book.id ? null : current));
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const noteId = event.dataTransfer.getData("text/plain") || draggedNoteId;
+                    if (noteId) void moveNote(noteId, book.id);
+                  }}
                 >
-                  <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
-                  <strong>{book.name}</strong>
-                  <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
-                    {book.noteCount}
-                  </span>
-                </button>
+                  <button
+                    className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
+                    type="button"
+                    onClick={() => void chooseBook(book.id)}
+                    onDoubleClick={() => beginBookRename(book)}
+                    onKeyDown={(event) => {
+                      if (event.key === "F2") beginBookRename(book);
+                    }}
+                    title={book.systemKey === "unsorted" ? "Default place for quick captures" : "Double-click to rename"}
+                  >
+                    <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
+                    <strong>{book.name}</strong>
+                    <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
+                      {book.noteCount}
+                    </span>
+                  </button>
+                  {book.systemKey !== "unsorted" && (
+                    <button
+                      className="book-more-button"
+                      type="button"
+                      aria-label={`Actions for ${book.name}`}
+                      aria-expanded={bookActionId === book.id}
+                      onClick={() => setBookActionId((current) => current === book.id ? null : book.id)}
+                      disabled={deletingBookId === book.id}
+                    >
+                      {deletingBookId === book.id ? "…" : "•••"}
+                    </button>
+                  )}
+                  {bookActionId === book.id && (
+                    <div className="book-actions-menu">
+                      <button type="button" onClick={() => beginBookRename(book)}>Rename</button>
+                      <button
+                        className="danger"
+                        type="button"
+                        onClick={() => void deleteBook(book)}
+                        disabled={book.noteCount > 0}
+                        title={book.noteCount > 0 ? "Move or delete every note first" : "Delete empty book"}
+                      >
+                        Delete empty book
+                      </button>
+                      {book.noteCount > 0 && <span>Move or delete its notes first.</span>}
+                    </div>
+                  )}
+                </div>
               )
-            ))}
+            )}
             {addingBook && (
               <form
                 className="book-create-form"
@@ -784,8 +970,24 @@ export function WorkspaceApp({
           <div className="note-list" aria-label="Notes">
             {filteredNotes.map((note) => (
               <div
-                className={`note-row ${note.id === selectedId ? "selected" : ""}`}
+                className={`note-row ${note.id === selectedId ? "selected" : ""} ${draggedNoteId === note.id ? "dragging" : ""} ${movingNoteId === note.id ? "moving" : ""}`}
                 key={note.id}
+                draggable={renamingNoteId !== note.id && movingNoteId !== note.id}
+                aria-grabbed={draggedNoteId === note.id}
+                onDragStart={(event) => {
+                  if (renamingNoteId === note.id || movingNoteId === note.id) {
+                    event.preventDefault();
+                    return;
+                  }
+                  setNoteActionId(null);
+                  setDraggedNoteId(note.id);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", note.id);
+                }}
+                onDragEnd={() => {
+                  setDraggedNoteId(null);
+                  setDropBookId(null);
+                }}
               >
                 {renamingNoteId === note.id ? (
                   <form className="note-inline-rename" onSubmit={(event) => void renameNote(event, note.id)}>
@@ -827,16 +1029,32 @@ export function WorkspaceApp({
                   aria-label={`Actions for ${note.title || "Untitled note"}`}
                   aria-expanded={noteActionId === note.id}
                   onClick={() => setNoteActionId((current) => (current === note.id ? null : note.id))}
-                  disabled={deletingNoteId === note.id}
+                  disabled={deletingNoteId === note.id || movingNoteId === note.id}
                 >
-                  {deletingNoteId === note.id ? "…" : "•••"}
+                  {deletingNoteId === note.id || movingNoteId === note.id ? "…" : "•••"}
                 </button>
                 {noteActionId === note.id && (
-                  <div className="note-actions-menu" role="menu">
-                    <button type="button" role="menuitem" onClick={() => void beginNoteRename(note)}>
+                  <div className="note-actions-menu">
+                    <button type="button" onClick={() => void beginNoteRename(note)}>
                       Rename
                     </button>
-                    <button className="danger" type="button" role="menuitem" onClick={() => void deleteNote(note)}>
+                    <label className="note-move-control">
+                      <span>Move to</span>
+                      <select
+                        value=""
+                        aria-label={`Move ${note.title || "Untitled note"} to another book`}
+                        onChange={(event) => {
+                          const targetBookId = event.target.value;
+                          if (targetBookId) void moveNote(note.id, targetBookId);
+                        }}
+                      >
+                        <option value="" disabled>Choose a book…</option>
+                        {books
+                          .filter((book) => book.id !== note.bookId)
+                          .map((book) => <option value={book.id} key={book.id}>{book.name}</option>)}
+                      </select>
+                    </label>
+                    <button className="danger" type="button" onClick={() => void deleteNote(note)}>
                       Delete
                     </button>
                   </div>

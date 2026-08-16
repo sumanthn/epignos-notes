@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-book-rename
-/opt/epinote/current -> /opt/epinote/releases/20260816-book-rename
+/opt/epinote/releases/20260816-note-drag-book-delete
+/opt/epinote/current -> /opt/epinote/releases/20260816-note-drag-book-delete
 ```
 
 ## Service layout
@@ -364,3 +364,30 @@ invalid input returned `400`, another organization received `404`, and Quick
 Capture returned `403`. The deployed client contained the inline rename control,
 the public HTTPS health check reported the database reachable, and both isolated
 test tenants were removed afterward.
+
+## 2026-08-16 note movement and empty-book deletion
+
+Notes can be moved between books by dragging a note card onto a book or by using
+the note menu's `Move to` selector. User-created books expose Rename and Delete
+actions; deletion is permitted only when the book has no active notes. Quick
+Capture remains permanent.
+
+Live verification used two isolated tenants and confirmed:
+
+```text
+note save                              200, revision 1 -> 2
+move to another book                   200, revision 2 -> 3
+stale-revision move                    409
+other-tenant destination               404
+other-tenant note                      404
+delete non-empty book                  409
+delete empty user-created books        200
+delete Quick Capture                   403
+second move                            200, revision 3 -> 4
+workspace and compiled UI assets       200
+```
+
+MongoDB inspection confirmed the moved note retained its exact title and plain
+text, remained active, kept its AI metadata, and referenced the destination
+book at revision 4. All temporary users, sessions, organizations, workspaces,
+books, and notes were removed afterward; the Epignos tenant was not modified.
