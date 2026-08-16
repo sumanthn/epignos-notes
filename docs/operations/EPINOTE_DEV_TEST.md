@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-contextual-icons
-/opt/epinote/current -> /opt/epinote/releases/20260816-contextual-icons
+/opt/epinote/releases/20260816-large-notes-v3
+/opt/epinote/current -> /opt/epinote/releases/20260816-large-notes-v3
 ```
 
 ## Service layout
@@ -56,8 +56,8 @@ mode: 0600
 ```
 
 The file contains the MongoDB application URI, base URL, database name, cookie
-mode, verification mode, HMAC secret, `OPENROUTER_API_KEY`, and
-`OPENROUTER_MODEL`. Never print or
+mode, verification mode, HMAC secret, `OPENROUTER_API_KEY`,
+`OPENROUTER_MODEL`, and `OPENROUTER_LARGE_NOTE_MODEL`. Never print or
 copy its values into Git, tickets, or chat. The OpenRouter key is loaded into the
 service environment and is used only after a user explicitly requests note
 organization.
@@ -103,7 +103,7 @@ Local code checks:
 - TypeScript strict check passed.
 - ESLint passed.
 - Production Next.js build passed locally and on the amd64 server.
-- Six unit tests passed.
+- Sixteen unit tests passed.
 - Argon2 hash/verify round-trip passed.
 - npm reported zero known vulnerabilities.
 
@@ -309,8 +309,8 @@ revision snapshot were removed after verification.
 
 ## 2026-08-16 summary-first organization and GPT-OSS 120B
 
-The active model is `openai/gpt-oss-120b` with low reasoning effort and a
-60-second bounded request timeout. The previous environment file is retained at
+The standard-note model is `openai/gpt-oss-120b` with low reasoning effort. The
+previous environment file is retained at
 `/home/epignos/.config/epinote/app.env.before-gpt-oss-120b-20260816`; both files
 have mode `0600`.
 
@@ -417,3 +417,34 @@ the deployed client contained the outside-click dismissal handler and contextual
 book menu, and the stylesheet contained the contextual action layout. Public
 health and the workspace returned `200`. The isolated test tenant and all of its
 data were removed afterward.
+
+## 2026-08-16 large-note organization
+
+Saving notes already supports up to 1,000,000 characters. The former AI route
+rejected notes over 30,000 characters even though their content had saved
+correctly. Organization now measures the complete UTF-8 request, uses
+`openai/gpt-oss-120b` for standard requests, and routes requests over 30,000
+bytes to `deepseek/deepseek-v4-pro`. The large-note model and its limit remain
+explicit configuration rather than hidden provider fallback.
+
+Standard and large requests have bounded 150-second and 300-second application
+timeouts. nginx permits 330 seconds for the upstream response. An output-limit
+or timeout response leaves the canonical note unchanged and surfaces a useful
+error; successful output is still only a proposal until the user approves it.
+
+Live verification used an isolated tenant and confirmed:
+
+```text
+saved source note                     37,800 characters, revision 2
+organization proposal                 200
+proposal model                        deepseek/deepseek-v4-pro
+proposal status                       proposed
+proposal source revision              2
+proposal source hash                  matched saved note
+original note before approval         unchanged
+approved proposal on original         none
+local and public health               200
+```
+
+The isolated user, session, organization, workspace, book, note, and proposal
+were removed after verification. Existing Epignos tenant data was not modified.

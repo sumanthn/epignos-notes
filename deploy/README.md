@@ -27,6 +27,9 @@ MONGODB_DB=epignos_dev
 AUTH_REQUIRE_EMAIL_VERIFICATION=false
 COOKIE_SECURE=true
 AUTH_HMAC_SECRET
+OPENROUTER_API_KEY
+OPENROUTER_MODEL=openai/gpt-oss-120b
+OPENROUTER_LARGE_NOTE_MODEL=deepseek/deepseek-v4-pro
 ```
 
 `AUTH_REQUIRE_EMAIL_VERIFICATION=false` is allowed only on this development

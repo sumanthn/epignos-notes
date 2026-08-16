@@ -308,3 +308,24 @@ for clarity and accessibility.
 Book and note action menus close when their trigger is pressed again, when
 another action menu opens, on any click outside the trigger or popover, or when
 Escape is pressed. This prevents a popover from remaining over the note tree.
+
+## 2026-08-16: large-note AI model routing
+
+Note storage and AI organization have separate limits. Canonical notes remain
+saveable up to 1,000,000 characters. AI organization no longer rejects every
+note above 30,000 characters.
+
+Normal notes use `openai/gpt-oss-120b`. The request size is measured as UTF-8
+bytes after constructing the actual user message, and the completion allowance
+grows with the input so the model can return the complete organized body. Notes
+beyond GPT-OSS's conservative one-pass allowance route to the configurable
+`OPENROUTER_LARGE_NOTE_MODEL`, defaulting to `deepseek/deepseek-v4-pro`. The
+fallback was selected from the live OpenRouter catalog because its 1M context
+and large completion ceiling can accommodate both the source and a full-length
+organized result. Extremely large notes that cannot safely fit one request remain
+fully saved and receive an explicit suggestion to split them before organizing.
+
+AI requests have bounded timeouts, nginx allows the longer upstream response,
+and a model response ending because of its token limit is rejected without
+changing the note. The original note remains canonical until the user explicitly
+applies a complete proposal.

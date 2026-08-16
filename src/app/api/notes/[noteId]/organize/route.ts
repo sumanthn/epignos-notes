@@ -13,6 +13,13 @@ import {
   isCanonicalContent,
 } from "@/lib/note-content";
 import {
+  MAX_LARGE_ORGANIZE_COMPLETION_TOKENS,
+  MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES,
+  MAX_STANDARD_ORGANIZE_USER_MESSAGE_BYTES,
+  organizeCompletionTokenBudget,
+  organizeMessageBytes,
+} from "@/lib/organize-limits";
+import {
   isUntitledNoteTitle,
   normalizeOrganizedPlainText,
   normalizeOrganizedSummary,
@@ -22,8 +29,6 @@ import {
 } from "@/lib/plain-text";
 import { getSessionUser } from "@/lib/session";
 import { ensurePersonalHierarchy } from "@/lib/workspace";
-
-const MAX_ORGANIZE_INPUT_LENGTH = 30_000;
 
 const applyInputSchema = z.object({
   proposalId: z.string().refine((value) => ObjectId.isValid(value)),
@@ -104,13 +109,32 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     if (!body) {
       return NextResponse.json({ error: "Add some text before organizing this note." }, { status: 400 });
     }
-    if (body.length > MAX_ORGANIZE_INPUT_LENGTH) {
+    const sourceBody = noteTextWithoutApprovedSummary(body, note.approvedAi?.summary) || body;
+    const userMessage = JSON.stringify({
+      currentTitle: note.title,
+      titleIsUntitled: isUntitledNoteTitle(note.title),
+      currentNote: sourceBody,
+    });
+    const userMessageBytes = organizeMessageBytes(userMessage);
+    if (userMessageBytes > MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES) {
       return NextResponse.json(
-        { error: "Organize currently supports notes up to 30,000 characters." },
+        {
+          error:
+            "This note is fully saved, but it is too large to organize in one pass. Split it into smaller notes before using Organize.",
+        },
         { status: 413 },
       );
     }
-    const sourceBody = noteTextWithoutApprovedSummary(body, note.approvedAi?.summary) || body;
+    const useLargeNoteModel = userMessageBytes > MAX_STANDARD_ORGANIZE_USER_MESSAGE_BYTES;
+    const organizeModel = useLargeNoteModel
+      ? env.OPENROUTER_LARGE_NOTE_MODEL
+      : env.OPENROUTER_MODEL;
+    const completionTokenBudget = organizeCompletionTokenBudget(
+      userMessageBytes,
+      useLargeNoteModel
+        ? MAX_LARGE_ORGANIZE_COMPLETION_TOKENS
+        : undefined,
+    );
 
     const cached = await db.collection("aiProposals").findOne({
       organizationId: identity.organizationId,
@@ -120,7 +144,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       status: "proposed",
       sourceRevision: note.revision,
       promptVersion: "organize-v3-summary",
-      model: env.OPENROUTER_MODEL,
+      model: organizeModel,
     });
     if (cached) return proposalResponse(cached as Parameters<typeof proposalResponse>[0]);
 
@@ -133,7 +157,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
         "X-Title": "EpiNote",
       },
       body: JSON.stringify({
-        model: env.OPENROUTER_MODEL,
+        model: organizeModel,
         messages: [
           {
             role: "system",
@@ -142,11 +166,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
           },
           {
             role: "user",
-            content: JSON.stringify({
-              currentTitle: note.title,
-              titleIsUntitled: isUntitledNoteTitle(note.title),
-              currentNote: sourceBody,
-            }),
+            content: userMessage,
           },
         ],
         response_format: {
@@ -176,11 +196,13 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
           },
         },
         provider: { require_parameters: true },
-        reasoning: { effort: "low", exclude: true },
+        ...(useLargeNoteModel
+          ? {}
+          : { reasoning: { effort: "low", exclude: true } }),
         temperature: 0.2,
-        max_tokens: 4_000,
+        max_tokens: completionTokenBudget,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(useLargeNoteModel ? 300_000 : 150_000),
     });
 
     if (!response.ok) {
@@ -192,9 +214,19 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     }
 
     const completion = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{ finish_reason?: string; message?: { content?: string } }>;
     };
-    const content = completion.choices?.[0]?.message?.content;
+    const choice = completion.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      return NextResponse.json(
+        {
+          error:
+            "AI organization reached its output limit. The saved note is unchanged; try dividing it into smaller notes.",
+        },
+        { status: 502 },
+      );
+    }
+    const content = choice?.message?.content;
     if (!content) throw new Error("OpenRouter response did not contain text");
     const modelValue = normalizedOrganizedNote(JSON.parse(content));
     const organized = {
@@ -214,7 +246,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       sourceRevision: note.revision,
       sourceHash: note.contentHash,
       provider: "openrouter",
-      model: env.OPENROUTER_MODEL,
+      model: organizeModel,
       promptVersion: "organize-v3-summary",
       createdAt: now,
       decidedAt: null,
@@ -224,6 +256,18 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     return proposalResponse(proposal);
   } catch (error) {
     safeError(error);
+    if (
+      error instanceof Error &&
+      (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout"))
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "AI organization took too long. The saved note is unchanged; try again shortly.",
+        },
+        { status: 504 },
+      );
+    }
     return NextResponse.json(
       { error: "Unable to organize this note right now." },
       { status: 500 },
