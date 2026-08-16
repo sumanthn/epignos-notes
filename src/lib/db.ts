@@ -154,6 +154,23 @@ async function createIndexes(): Promise<void> {
         partialFilterExpression: { status: "processing" },
       },
     ]),
+    db.collection("bookCardDecks").createIndexes([
+      {
+        key: {
+          organizationId: 1,
+          workspaceId: 1,
+          bookId: 1,
+          sourceHash: 1,
+          promptVersion: 1,
+        },
+        name: "book_card_decks_source_unique",
+        unique: true,
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, bookId: 1, createdAt: -1 },
+        name: "book_card_decks_navigation",
+      },
+    ]),
     db.collection("noteRevisions").createIndexes([
       {
         key: { noteId: 1, revision: 1 },

@@ -353,3 +353,25 @@ and timestamp. A response that fails validation is discarded, optionally
 retried through the next model tier, and never presented as an approvable
 proposal. Existing version-3 proposals are reused only when they pass the same
 gate.
+
+## 2026-08-16: sourced book summary cards
+
+Summary cards are a book-level study aid, not a replacement for canonical
+notes. Organizing either one note or an entire book schedules a durable
+`summarize-book-cards` job after pending note-organization jobs settle. A user
+can also generate or refresh cards explicitly from the book menu or note
+toolbar.
+
+DeepSeek receives the current book snapshot, preferring valid organization
+proposals while falling back to saved note text. It chooses two through eight
+cards based on the material rather than filling a fixed template. Each card has
+a short type, standalone summary, and at most four recall points. Every point
+must cite note IDs supplied in that request; the server rejects unknown source
+IDs, duplicate card titles, excessive cards, or excessive points before saving
+the result.
+
+Decks are immutable and keyed by a hash of the book name plus every active
+source note's ID, revision, and content hash. Editing or renaming source material
+makes the prior deck visibly stale instead of silently presenting it as current.
+Cards link back to their source notes, carry an AI study-aid warning, and never
+modify note content.

@@ -1,6 +1,12 @@
 import { ObjectId } from "mongodb";
 import { after, NextRequest, NextResponse } from "next/server";
 
+import {
+  PublicBookCardsError,
+  type BookForCards,
+  enqueueBookCardJob,
+  processBookCardJobs,
+} from "@/lib/book-cards";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { mutationRequestError, safeError } from "@/lib/http";
@@ -92,9 +98,12 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       }
     }
 
-    if (jobIds.length > 0) {
-      after(() => processOrganizeJobs(jobIds));
-    }
+    const cardResult = await enqueueBookCardJob(db, book as BookForCards, user.id);
+    const cardJobId = cardResult.kind === "job" ? cardResult.jobId : null;
+    after(async () => {
+      if (jobIds.length > 0) await processOrganizeJobs(jobIds);
+      if (cardJobId) await processBookCardJobs([cardJobId]);
+    });
     return NextResponse.json(
       {
         book: { id: book._id.toHexString(), name: book.name },
@@ -106,12 +115,15 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
           jobs,
           skippedNotes: skipped,
         },
+        summaryCards: cardResult.kind === "deck"
+          ? { status: "ready", deckId: cardResult.deck.id }
+          : { status: cardResult.job.status, jobId: cardResult.job.id },
       },
-      { status: jobIds.length > 0 ? 202 : 200 },
+      { status: jobIds.length > 0 || cardResult.kind === "job" ? 202 : 200 },
     );
   } catch (error) {
     safeError(error);
-    if (error instanceof PublicOrganizeError) {
+    if (error instanceof PublicOrganizeError || error instanceof PublicBookCardsError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     return NextResponse.json(

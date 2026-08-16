@@ -2,6 +2,11 @@ import { ObjectId } from "mongodb";
 import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  type BookForCards,
+  enqueueBookCardJob,
+  processBookCardJobs,
+} from "@/lib/book-cards";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { mutationRequestError, safeError } from "@/lib/http";
@@ -81,9 +86,31 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       note as NoteForOrganization,
       user.id,
     );
-    if (result.kind === "proposal") return proposalResponse(result.proposal);
+    let cardJobId: ObjectId | null = null;
+    try {
+      const book = await db.collection("books").findOne({
+        _id: note.bookId,
+        organizationId: identity.organizationId,
+        workspaceId: identity.workspaceId,
+        status: "active",
+      });
+      if (book) {
+        const cardResult = await enqueueBookCardJob(db, book as BookForCards, user.id);
+        if (cardResult.kind === "job") cardJobId = cardResult.jobId;
+      }
+    } catch (error) {
+      safeError(error);
+      // Card generation is helpful, but it must never block organization of a note.
+    }
+    if (result.kind === "proposal") {
+      if (cardJobId) after(() => processBookCardJobs([cardJobId!]));
+      return proposalResponse(result.proposal);
+    }
 
-    after(() => processOrganizeJobs([result.jobId]));
+    after(async () => {
+      await processOrganizeJobs([result.jobId]);
+      if (cardJobId) await processBookCardJobs([cardJobId]);
+    });
     return NextResponse.json({ job: result.job }, { status: 202 });
   } catch (error) {
     safeError(error);

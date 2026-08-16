@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-background-ai-v4
-/opt/epinote/current -> /opt/epinote/releases/20260816-background-ai-v4
+/opt/epinote/releases/20260816-summary-cards-v6
+/opt/epinote/current -> /opt/epinote/releases/20260816-summary-cards-v6
 ```
 
 ## Service layout
@@ -487,4 +487,33 @@ automatically applied proposals         0
 rejected unsafe proposals               3
 temporary verification sessions         removed
 local and public health                 200, database reachable
+```
+
+## 2026-08-16 sourced book summary cards
+
+Book-level summary cards now run as durable `summarize-book-cards` jobs. Note
+organization and whole-book organization schedule the deck after pending note
+jobs finish; users can also open or refresh cards directly. DeepSeek generates
+two through eight cards with no more than four points per card. The server
+requires every point to cite valid note IDs from the book and saves immutable
+decks keyed to the complete source snapshot.
+
+The real `Epignos / Ideologies` book was used for the first production deck.
+No note content was printed during verification and no proposal was applied.
+
+```text
+card enqueue                            202, durable background job
+model                                   deepseek/deepseek-v4-pro
+generated cards                         8
+maximum points on one card              4
+source notes                            5
+source notes cited                      5
+invalid source citations                0
+source revisions and hashes changed     0
+latest card notification                completed
+cached card retrieval                   200, stale=false
+deployed client summary-card control    present
+temporary verification sessions         removed
+local and public health                 200, database reachable
+quality gates                           typecheck, lint, build, 24 tests
 ```

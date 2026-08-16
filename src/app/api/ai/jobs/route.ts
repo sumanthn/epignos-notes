@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { after, NextRequest, NextResponse } from "next/server";
 
+import { processBookCardJobs } from "@/lib/book-cards";
 import { getDb } from "@/lib/db";
 import { safeError } from "@/lib/http";
 import { processOrganizeJobs } from "@/lib/organize";
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const db = await getDb();
     const jobs = await db.collection("aiJobs").aggregate<{
       _id: ObjectId;
-      noteId: ObjectId;
+      type: "organize-note" | "summarize-book-cards";
+      noteId?: ObjectId | null;
       bookId: ObjectId;
       status: "queued" | "processing" | "completed" | "failed" | "applied";
       error?: string | null;
@@ -34,13 +36,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         $match: {
           organizationId: identity.organizationId,
           workspaceId: identity.workspaceId,
-          type: "organize-note",
+          type: { $in: ["organize-note", "summarize-book-cards"] },
         },
       },
       { $sort: { updatedAt: -1 } },
       {
+        $set: {
+          notificationKey: {
+            $cond: [
+              { $eq: ["$type", "organize-note"] },
+              { $concat: ["note:", { $toString: "$noteId" }] },
+              { $concat: ["cards:", { $toString: "$bookId" }] },
+            ],
+          },
+        },
+      },
+      {
         $group: {
-          _id: "$noteId",
+          _id: "$notificationKey",
           latestJob: { $first: "$$ROOT" },
         },
       },
@@ -72,19 +85,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { $unset: ["noteRows", "bookRows"] },
     ]).toArray();
 
-    const resumable = jobs
+    const resumableNotes = jobs
+      .filter((job) => job.type === "organize-note")
       .filter((job) => job.status === "queued" || job.status === "processing")
       .map((job) => job._id);
-    if (resumable.length > 0) {
-      after(() => processOrganizeJobs(resumable));
+    const resumableCards = jobs
+      .filter((job) => job.type === "summarize-book-cards")
+      .filter((job) => job.status === "queued" || job.status === "processing")
+      .map((job) => job._id);
+    if (resumableNotes.length > 0 || resumableCards.length > 0) {
+      after(async () => {
+        if (resumableNotes.length > 0) await processOrganizeJobs(resumableNotes);
+        if (resumableCards.length > 0) await processBookCardJobs(resumableCards);
+      });
     }
 
     return NextResponse.json({
       jobs: jobs.map((job) => ({
         id: job._id.toHexString(),
-        noteId: job.noteId.toHexString(),
+        type: job.type,
+        noteId: job.noteId?.toHexString() ?? null,
         bookId: job.bookId.toHexString(),
-        noteTitle: job.note?.title || "Note",
+        title: job.type === "summarize-book-cards"
+          ? `${job.book?.name || "Book"} summary cards`
+          : job.note?.title || "Note",
+        noteTitle: job.note?.title || null,
         bookName: job.book?.name || "Book",
         status: job.status,
         error: typeof job.error === "string" ? job.error : null,

@@ -15,11 +15,14 @@ type OrganizeProposal = {
   body: string;
 };
 type AiJobStatus = "queued" | "processing" | "completed" | "failed" | "applied";
+type BookCardJobStatus = Exclude<AiJobStatus, "applied">;
 type AiJobNotification = {
   id: string;
-  noteId: string;
+  type: "organize-note" | "summarize-book-cards";
+  noteId: string | null;
   bookId: string;
-  noteTitle: string;
+  title: string;
+  noteTitle: string | null;
   bookName: string;
   status: AiJobStatus;
   error: string | null;
@@ -27,8 +30,24 @@ type AiJobNotification = {
   createdAt: string;
   updatedAt: string;
 };
+type BookCardsState = "idle" | "loading" | "ready" | "empty" | "error";
+type BookCardDeck = {
+  id: string;
+  bookId: string;
+  overview: string;
+  cards: Array<{
+    title: string;
+    kind: "overview" | "concept" | "person" | "timeline" | "comparison" | "argument" | "event";
+    summary: string;
+    points: Array<{ text: string; sourceNoteIds: string[] }>;
+  }>;
+  sourceNotes: Array<{ id: string; title: string }>;
+  model: string;
+  generatedAt: string;
+  stale: boolean;
+};
 
-type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus" | "sparkles" | "bell";
+type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus" | "sparkles" | "bell" | "cards";
 
 function UiIcon({ name }: { name: UiIconName }) {
   const paths: Record<UiIconName, React.ReactNode> = {
@@ -42,6 +61,7 @@ function UiIcon({ name }: { name: UiIconName }) {
     plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
     sparkles: <><path d="m12 3 1.3 3.7L17 8l-3.7 1.3L12 13l-1.3-3.7L7 8l3.7-1.3Z" /><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z" /><path d="M5 13v4M3 15h4" /></>,
     bell: <><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7" /><path d="M10 20h4" /></>,
+    cards: <><rect x="4" y="5" width="14" height="15" rx="2" /><path d="M8 2h10a2 2 0 0 1 2 2v12" /><path d="M8 10h6M8 14h4" /></>,
   };
 
   return (
@@ -108,10 +128,16 @@ export function WorkspaceApp({
   });
   const [organizingBookId, setOrganizingBookId] = useState<string | null>(null);
   const [backgroundMessage, setBackgroundMessage] = useState("");
+  const [cardsPanelOpen, setCardsPanelOpen] = useState(false);
+  const [cardsBookId, setCardsBookId] = useState<string | null>(null);
+  const [cardsState, setCardsState] = useState<BookCardsState>("idle");
+  const [cardDeck, setCardDeck] = useState<BookCardDeck | null>(null);
+  const [cardsError, setCardsError] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const organizePollRef = useRef<number | null>(null);
+  const cardsPollRef = useRef<number | null>(null);
 
   useEffect(() => {
     notesRef.current = notes;
@@ -140,6 +166,7 @@ export function WorkspaceApp({
 
   useEffect(() => () => {
     if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
+    if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
   }, []);
 
   const selected = notes.find((note) => note.id === selectedId) ?? null;
@@ -303,7 +330,10 @@ export function WorkspaceApp({
   }
 
   async function chooseNote(noteId: string) {
-    if (noteId === selectedId) return;
+    if (noteId === selectedId) {
+      if (cardsPanelOpen) closeCardsPanel();
+      return;
+    }
     if (dirty && selected && !(await saveNote(selected))) return;
     const nextNote = notesRef.current.find((note) => note.id === noteId);
     if (nextNote) setActiveBookId(nextNote.bookId);
@@ -312,6 +342,7 @@ export function WorkspaceApp({
     setError("");
     setPreview(false);
     closeOrganizePanel();
+    closeCardsPanel();
   }
 
   async function createNote() {
@@ -343,6 +374,7 @@ export function WorkspaceApp({
       setSaveState("Saved");
       setPreview(false);
       closeOrganizePanel();
+      closeCardsPanel();
       window.setTimeout(() => editorRef.current?.focus(), 0);
     } catch {
       setError("EpiNote is unreachable. Try again when your connection returns.");
@@ -354,8 +386,12 @@ export function WorkspaceApp({
   async function chooseBook(bookId: string) {
     closeBookCreator();
     setBookActionId(null);
-    if (bookId === activeBookId) return;
+    if (bookId === activeBookId) {
+      if (cardsPanelOpen) closeCardsPanel();
+      return;
+    }
     if (dirty && selected && !(await saveNote(selected))) return;
+    closeCardsPanel();
     setActiveBookId(bookId);
     setSelectedId(notesRef.current.find((note) => note.bookId === bookId)?.id ?? null);
     setDirty(false);
@@ -891,8 +927,8 @@ export function WorkspaceApp({
       }
       setBackgroundMessage(
         data.organization.background > 0
-          ? `Organizing ${data.organization.background} notes from ${book.name} in the background${data.organization.skipped ? `; ${data.organization.skipped} could not be queued` : ""}.`
-          : `${data.organization.ready} notes from ${book.name} are ready to review.`,
+          ? `Organizing ${data.organization.background} notes from ${book.name} and building summary cards in the background${data.organization.skipped ? `; ${data.organization.skipped} could not be queued` : ""}.`
+          : `${data.organization.ready} notes from ${book.name} are ready; summary cards are being prepared.`,
       );
       setNotificationsOpen(true);
       void loadAiJobs();
@@ -901,6 +937,118 @@ export function WorkspaceApp({
     } finally {
       setOrganizingBookId(null);
     }
+  }
+
+  function closeCardsPanel() {
+    if (cardsPollRef.current !== null) {
+      window.clearTimeout(cardsPollRef.current);
+      cardsPollRef.current = null;
+    }
+    setCardsPanelOpen(false);
+    setCardsState("idle");
+    setCardDeck(null);
+    setCardsError("");
+    setCardsBookId(null);
+  }
+
+  function scheduleCardsPoll(bookId: string) {
+    if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
+    cardsPollRef.current = window.setTimeout(() => void loadBookCards(bookId), 2_500);
+  }
+
+  async function loadBookCards(bookId: string) {
+    try {
+      const response = await fetch(`/api/books/${bookId}/cards`, { cache: "no-store" });
+      const data = (await response.json()) as {
+        error?: string;
+        deck?: BookCardDeck | null;
+        job?: { status: BookCardJobStatus; error: string | null } | null;
+      };
+      if (data.deck) {
+        setCardDeck(data.deck);
+        setCardsState("ready");
+      }
+      if (!response.ok && response.status !== 202) {
+        setCardsError(data.error || data.job?.error || "Unable to load summary cards.");
+        setCardsState(data.deck ? "ready" : "error");
+        cardsPollRef.current = null;
+        return;
+      }
+      if (data.job?.status === "failed") {
+        setCardsError(data.job.error || "Summary card generation failed.");
+        setCardsState(data.deck ? "ready" : "error");
+        cardsPollRef.current = null;
+        void loadAiJobs();
+        return;
+      }
+      if (data.job?.status === "queued" || data.job?.status === "processing") {
+        if (!data.deck) setCardsState("loading");
+        scheduleCardsPoll(bookId);
+        return;
+      }
+      cardsPollRef.current = null;
+      if (!data.deck) setCardsState("empty");
+      void loadAiJobs();
+    } catch {
+      scheduleCardsPoll(bookId);
+    }
+  }
+
+  async function openBookCards(book: WorkspacePayload["books"][number]) {
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setBookActionId(null);
+    closeOrganizePanel();
+    setCardsPanelOpen(true);
+    setCardsBookId(book.id);
+    setCardsState("loading");
+    setCardDeck(null);
+    setCardsError("");
+    await loadBookCards(book.id);
+  }
+
+  async function generateBookCards(bookId: string) {
+    setCardsState("loading");
+    setCardsError("");
+    try {
+      const response = await fetch(`/api/books/${bookId}/cards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        deck?: BookCardDeck | null;
+        job?: { status: BookCardJobStatus; error: string | null } | null;
+      };
+      if (!response.ok && response.status !== 202) {
+        setCardsError(data.error || "Unable to generate summary cards.");
+        setCardsState("error");
+        return;
+      }
+      if (data.deck) {
+        setCardDeck(data.deck);
+        setCardsState("ready");
+        return;
+      }
+      setBackgroundMessage("Summary cards are being generated in the background.");
+      void loadAiJobs();
+      scheduleCardsPoll(bookId);
+    } catch {
+      setCardsError("EpiNote cannot reach the AI service right now.");
+      setCardsState("error");
+    }
+  }
+
+  async function openCardSource(noteId: string) {
+    const note = notesRef.current.find((item) => item.id === noteId);
+    if (!note) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    closeCardsPanel();
+    setActiveBookId(note.bookId);
+    setSelectedId(note.id);
+    setDirty(false);
+    setPreview(true);
+    setError("");
   }
 
   async function applyOrganization() {
@@ -941,6 +1089,7 @@ export function WorkspaceApp({
 
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = books.find((book) => book.id === activeBookId) ?? null;
+  const cardsBook = books.find((book) => book.id === cardsBookId) ?? null;
   const activeAiJobCount = aiJobs.filter(
     (job) => job.status === "queued" || job.status === "processing",
   ).length;
@@ -964,6 +1113,15 @@ export function WorkspaceApp({
   }
 
   async function openAiNotification(job: AiJobNotification) {
+    if (job.type === "summarize-book-cards") {
+      const book = books.find((item) => item.id === job.bookId);
+      if (book) {
+        setNotificationsOpen(false);
+        await openBookCards(book);
+      }
+      return;
+    }
+    if (!job.noteId) return;
     const note = notesRef.current.find((item) => item.id === job.noteId);
     if (!note) return;
     if (dirty && selected && !(await saveNote(selected))) return;
@@ -1181,18 +1339,24 @@ export function WorkspaceApp({
                       >
                         <span className="notification-status" aria-hidden="true" />
                         <span>
-                          <strong>{job.noteTitle}</strong>
+                          <strong>{job.title}</strong>
                           <small>{job.bookName}</small>
                           <em>
                             {job.status === "completed"
-                              ? "Ready to review"
+                              ? job.type === "summarize-book-cards"
+                                ? "Summary cards ready"
+                                : "Ready to review"
                               : job.status === "applied"
                                 ? "Organization applied"
                               : job.status === "failed"
-                                ? job.error || "Organization failed"
+                                ? job.error || (job.type === "summarize-book-cards" ? "Card generation failed" : "Organization failed")
                                 : job.status === "processing"
-                                  ? "Organizing in background"
-                                  : "Waiting to organize"}
+                                  ? job.type === "summarize-book-cards"
+                                    ? "Building cards in background"
+                                    : "Organizing in background"
+                                  : job.type === "summarize-book-cards"
+                                    ? "Waiting to build cards"
+                                    : "Waiting to organize"}
                           </em>
                         </span>
                       </button>
@@ -1336,6 +1500,14 @@ export function WorkspaceApp({
                         <UiIcon name="sparkles" />
                         {organizingBookId === book.id ? "Starting…" : "Organize notes"}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void openBookCards(book)}
+                        disabled={book.noteCount === 0}
+                        title={book.noteCount === 0 ? "Add text to a note first" : "Open this book's quick-reference cards"}
+                      >
+                        <UiIcon name="cards" /> Summary cards
+                      </button>
                       <button type="button" onClick={() => beginBookRename(book)}>
                         <UiIcon name="edit" /> Rename
                       </button>
@@ -1435,6 +1607,11 @@ export function WorkspaceApp({
                 <button type="button" onClick={() => setPreview(false)} className={!preview ? "active" : ""}>Edit</button>
                 <button type="button" onClick={startBulletList} aria-label="Bullet list">• List</button>
                 <span className="format-spacer" />
+                {activeBook && activeBook.noteCount > 0 && (
+                  <button type="button" onClick={() => void openBookCards(activeBook)}>
+                    Summary cards
+                  </button>
+                )}
                 <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Read</button>
               </div>
               <div className="editor-area">
@@ -1536,6 +1713,101 @@ export function WorkspaceApp({
               <button className="button" type="button" onClick={createNote}>Create your first note</button>
               {error && <p className="form-error" role="alert">{error}</p>}
             </div>
+          )}
+          {cardsPanelOpen && cardsBook && (
+            <aside className="cards-panel" aria-label={`${cardsBook.name} summary cards`}>
+              <header className="cards-panel-header">
+                <div>
+                  <p className="eyebrow">Quick reference</p>
+                  <h2>{cardsBook.name}</h2>
+                  <span>Summary cards</span>
+                </div>
+                <button type="button" onClick={closeCardsPanel} aria-label="Close summary cards">×</button>
+              </header>
+              <p className="cards-safety">
+                Generated from this book’s notes. Use the source links to verify important details.
+              </p>
+              {cardsState === "loading" && !cardDeck && (
+                <div className="cards-panel-state" role="status">
+                  <UiIcon name="cards" />
+                  <strong>Building a quick-reference deck…</strong>
+                  <span>You can close this view and keep writing. The bell will notify you when the cards are ready.</span>
+                </div>
+              )}
+              {cardsState === "empty" && (
+                <div className="cards-panel-state">
+                  <UiIcon name="cards" />
+                  <strong>No summary cards yet</strong>
+                  <span>Generate a concise study deck from the notes in {cardsBook.name}.</span>
+                  <button className="button button-small" type="button" onClick={() => void generateBookCards(cardsBook.id)}>
+                    Generate cards
+                  </button>
+                </div>
+              )}
+              {cardsState === "error" && !cardDeck && (
+                <div className="cards-panel-state cards-panel-error" role="alert">
+                  <UiIcon name="cards" />
+                  <strong>Cards could not be generated</strong>
+                  <span>{cardsError}</span>
+                  <button className="button button-secondary button-small" type="button" onClick={() => void generateBookCards(cardsBook.id)}>
+                    Try again
+                  </button>
+                </div>
+              )}
+              {cardDeck && (
+                <div className="cards-deck">
+                  {(cardDeck.stale || cardsError) && (
+                    <div className="cards-notice" role={cardsError ? "alert" : "status"}>
+                      <span>{cardsError || "These cards are from an earlier version of this book."}</span>
+                      <button type="button" onClick={() => void generateBookCards(cardsBook.id)}>
+                        Refresh
+                      </button>
+                    </div>
+                  )}
+                  <div className="cards-overview">
+                    <span>{cardDeck.cards.length} cards · {cardDeck.sourceNotes.length} source notes</span>
+                    <p>{cardDeck.overview}</p>
+                  </div>
+                  <div className="summary-card-grid">
+                    {cardDeck.cards.map((card) => (
+                      <article className="summary-card" key={card.title}>
+                        <p className="summary-card-kind">{card.kind}</p>
+                        <h3>{card.title}</h3>
+                        <p className="summary-card-summary">{card.summary}</p>
+                        <ul>
+                          {card.points.map((point, pointIndex) => (
+                            <li key={`${card.title}-${pointIndex}`}>
+                              <span>{point.text}</span>
+                              <span className="summary-card-sources">
+                                {point.sourceNoteIds.map((noteId) => {
+                                  const source = cardDeck.sourceNotes.find((note) => note.id === noteId);
+                                  return source ? (
+                                    <button
+                                      type="button"
+                                      key={noteId}
+                                      onClick={() => void openCardSource(noteId)}
+                                      title={`Open source note: ${source.title}`}
+                                    >
+                                      {source.title}
+                                    </button>
+                                  ) : null;
+                                })}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    ))}
+                  </div>
+                  <footer className="cards-deck-footer">
+                    <span>AI study aid · Check the linked notes for context</span>
+                    <button className="button button-secondary button-small" type="button" onClick={() => void generateBookCards(cardsBook.id)}>
+                      Refresh cards
+                    </button>
+                  </footer>
+                </div>
+              )}
+            </aside>
           )}
         </section>
       </div>
