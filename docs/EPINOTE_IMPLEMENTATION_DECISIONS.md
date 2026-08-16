@@ -157,7 +157,8 @@ be triggered accidentally by opening user information.
 ## 2026-08-16: workspace renaming
 
 An active organization owner or admin may rename an active workspace from the
-account menu. Renaming changes only the visible workspace `name`; its stable ID,
-internal slug, books, notes, permissions, and URLs do not change. The server
-authorizes the request through the active organization membership and scopes the
-update by organization and workspace IDs.
+visible top-bar workspace name or the account menu. Both entry points open the
+same explicit rename dialog. Renaming changes only the visible workspace `name`;
+its stable ID, internal slug, books, notes, permissions, and URLs do not change.
+The server authorizes the request through the active organization membership and
+scopes the update by organization and workspace IDs.

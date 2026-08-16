@@ -34,6 +34,7 @@ export function WorkspaceApp({
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const userMenuRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     notesRef.current = notes;
@@ -279,6 +280,19 @@ export function WorkspaceApp({
     }
   }
 
+  function beginWorkspaceRename() {
+    userMenuRef.current?.removeAttribute("open");
+    setWorkspaceDraft(workspaceName);
+    setWorkspaceError("");
+    setRenamingWorkspace(true);
+  }
+
+  function cancelWorkspaceRename() {
+    setWorkspaceDraft(workspaceName);
+    setWorkspaceError("");
+    setRenamingWorkspace(false);
+  }
+
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = initialWorkspace.books[0];
 
@@ -288,7 +302,16 @@ export function WorkspaceApp({
         <div className="workspace-identity">
           <span className="wordmark workspace-wordmark">EpiNote</span>
           <span className="topbar-divider" />
-          <span className="workspace-name">{workspaceName}</span>
+          <button
+            className="workspace-name workspace-name-button"
+            type="button"
+            onClick={beginWorkspaceRename}
+            title="Rename workspace"
+            aria-label={`Rename workspace ${workspaceName}`}
+          >
+            <span>{workspaceName}</span>
+            <span className="workspace-edit-mark" aria-hidden="true">Rename</span>
+          </button>
         </div>
         <label className="workspace-search">
           <span aria-hidden="true">⌕</span>
@@ -303,7 +326,7 @@ export function WorkspaceApp({
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
             {saveState}
           </span>
-          <details className="user-menu">
+          <details className="user-menu" ref={userMenuRef}>
             <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
               {avatar}
             </summary>
@@ -317,48 +340,9 @@ export function WorkspaceApp({
                 <span>Workspace</span>
                 <strong>{workspaceName}</strong>
               </div>
-              {renamingWorkspace ? (
-                <form className="workspace-rename-form" onSubmit={renameWorkspace}>
-                  <label htmlFor="workspace-name">Workspace name</label>
-                  <input
-                    id="workspace-name"
-                    value={workspaceDraft}
-                    onChange={(event) => setWorkspaceDraft(event.target.value)}
-                    minLength={2}
-                    maxLength={100}
-                    autoFocus
-                    required
-                  />
-                  {workspaceError && <span role="alert">{workspaceError}</span>}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWorkspaceDraft(workspaceName);
-                        setWorkspaceError("");
-                        setRenamingWorkspace(false);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={workspaceSaving}>
-                      {workspaceSaving ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <button
-                  className="account-action"
-                  type="button"
-                  onClick={() => {
-                    setWorkspaceDraft(workspaceName);
-                    setWorkspaceError("");
-                    setRenamingWorkspace(true);
-                  }}
-                >
-                  Rename workspace
-                </button>
-              )}
+              <button className="account-action" type="button" onClick={beginWorkspaceRename}>
+                Rename workspace
+              </button>
               <button className="account-signout" type="button" onClick={() => void logout()}>
                 Sign out
               </button>
@@ -462,6 +446,54 @@ export function WorkspaceApp({
           )}
         </section>
       </div>
+      {renamingWorkspace && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !workspaceSaving) {
+              cancelWorkspaceRename();
+            }
+          }}
+        >
+          <section
+            className="workspace-rename-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-workspace-title"
+            aria-describedby="rename-workspace-description"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !workspaceSaving) cancelWorkspaceRename();
+            }}
+          >
+            <p className="eyebrow">Workspace settings</p>
+            <h2 id="rename-workspace-title">Rename workspace</h2>
+            <p id="rename-workspace-description">
+              The books and notes inside this workspace will not change.
+            </p>
+            <form className="workspace-rename-form" onSubmit={renameWorkspace}>
+              <label htmlFor="workspace-name">Workspace name</label>
+              <input
+                id="workspace-name"
+                value={workspaceDraft}
+                onChange={(event) => setWorkspaceDraft(event.target.value)}
+                minLength={2}
+                maxLength={100}
+                autoFocus
+                required
+              />
+              {workspaceError && <span role="alert">{workspaceError}</span>}
+              <div>
+                <button type="button" onClick={cancelWorkspaceRename} disabled={workspaceSaving}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={workspaceSaving}>
+                  {workspaceSaving ? "Saving…" : "Save workspace name"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

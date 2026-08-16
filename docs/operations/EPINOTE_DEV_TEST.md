@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-workspace-rename
-/opt/epinote/current -> /opt/epinote/releases/20260816-workspace-rename
+/opt/epinote/releases/20260816-visible-workspace-rename
+/opt/epinote/current -> /opt/epinote/releases/20260816-visible-workspace-rename
 ```
 
 ## Service layout
@@ -157,7 +157,8 @@ retained as rollback points. Rollback selects a known earlier release, restarts
   richer block editor are not present yet.
 - `Review` is intentionally disabled until a narrow, evidence-preserving AI
   workflow exists.
-- A domain should replace raw-IP access before a production launch.
+- Production readiness still requires the remaining authentication controls and
+  a separate production environment; the canonical domain and HTTPS are active.
 
 ## 2026-08-16 static-asset correction
 
@@ -190,8 +191,11 @@ temporary account and tenant documents were removed after verification.
 
 ## 2026-08-16 workspace rename
 
-Organization owners/admins can rename the active workspace from the account
-menu. Deployment verification renamed a temporary workspace, reloaded the page,
-confirmed MongoDB persistence and an unchanged slug, rejected an unrelated
-workspace ID with `404`, and rejected an invalid name with `400`. The temporary
-account and tenant were removed afterward.
+Organization owners/admins can rename the active workspace by selecting its
+visible name in the top bar or using the account menu. Both controls open the
+same focused dialog. Deployment verification registered a temporary user,
+confirmed that the top-bar rename control and dialog code were delivered,
+renamed the workspace, reloaded the page, and found the persisted name in the
+top bar. Earlier API verification also confirmed an unchanged slug, rejected an
+unrelated workspace ID with `404`, and rejected an invalid name with `400`. The
+temporary account and tenant were removed afterward.
