@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-org-registration
-/opt/epinote/current -> /opt/epinote/releases/20260816-org-registration
+/opt/epinote/releases/20260816-account-menu
+/opt/epinote/current -> /opt/epinote/releases/20260816-account-menu
 ```
 
 ## Service layout
@@ -180,3 +180,10 @@ The first registered user `Sumanth` is the owner of the `Epignos` organization.
 The original generated display name `Sumanth's organization` was corrected in
 MongoDB. Registration now collects person and organization names separately;
 future public registrations remain isolated from the existing Epignos tenant.
+
+## 2026-08-16 account-menu correction
+
+The top-right avatar opens a user-information menu rather than logging out. The
+deployed menu was verified with an authenticated temporary account to contain the
+user name, email, organization, workspace, and a separate `Sign out` action. The
+temporary account and tenant documents were removed after verification.

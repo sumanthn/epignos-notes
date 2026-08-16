@@ -11,9 +11,11 @@ type SaveState = "Saved" | "Unsaved changes" | "Saving…" | "Save failed";
 export function WorkspaceApp({
   initialWorkspace,
   userName,
+  userEmail,
 }: {
   initialWorkspace: WorkspacePayload;
   userName: string;
+  userEmail: string;
 }) {
   const router = useRouter();
   const [notes, setNotes] = useState(initialWorkspace.notes);
@@ -254,9 +256,25 @@ export function WorkspaceApp({
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
             {saveState}
           </span>
-          <button className="avatar-button" type="button" onClick={logout} title="Sign out">
-            {avatar}
-          </button>
+          <details className="user-menu">
+            <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
+              {avatar}
+            </summary>
+            <div className="account-popover">
+              <p className="account-label">Signed in as</p>
+              <strong>{userName}</strong>
+              <span className="account-email">{userEmail}</span>
+              <div className="account-context">
+                <span>Organization</span>
+                <strong>{initialWorkspace.organization.name}</strong>
+                <span>Workspace</span>
+                <strong>{initialWorkspace.workspace.name}</strong>
+              </div>
+              <button className="account-signout" type="button" onClick={() => void logout()}>
+                Sign out
+              </button>
+            </div>
+          </details>
         </div>
       </header>
 

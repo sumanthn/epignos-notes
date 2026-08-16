@@ -146,3 +146,10 @@ redirect to the canonical hostname.
 `APP_BASE_URL` uses the canonical domain so origin validation, authentication
 links, and browser cookies agree on one origin. The application does not require
 a paid GoDaddy certificate or hosting product.
+
+## 2026-08-16: account avatar behavior
+
+The top-right user avatar opens an account menu; it never logs the user out
+directly. The menu shows the signed-in person's name and email plus the active
+organization and workspace. `Sign out` is a separate labeled action so it cannot
+be triggered accidentally by opening user information.

@@ -16,5 +16,11 @@ export default async function WorkspacePage() {
   if (!user) redirect("/login");
 
   const workspace = await getWorkspacePayload(user);
-  return <WorkspaceApp initialWorkspace={workspace} userName={user.displayName} />;
+  return (
+    <WorkspaceApp
+      initialWorkspace={workspace}
+      userName={user.displayName}
+      userEmail={user.email}
+    />
+  );
 }

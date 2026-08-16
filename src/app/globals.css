@@ -96,6 +96,19 @@ a { color: inherit; }
 .save-chip { color: var(--success); font-size: 0.75rem; font-weight: 650; }
 .save-chip.failed { color: var(--danger); }
 .avatar-button { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--selected); color: var(--cobalt); font-size: 0.82rem; font-weight: 750; cursor: pointer; }
+.user-menu { position: relative; }
+.user-menu summary { list-style: none; }
+.user-menu summary::-webkit-details-marker { display: none; }
+.user-menu[open] .avatar-button { box-shadow: 0 0 0 3px rgba(49, 92, 245, 0.16); }
+.account-popover { position: absolute; z-index: 20; top: 44px; right: 0; width: 280px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 16px 45px rgba(23, 32, 51, 0.14); }
+.account-popover > strong { display: block; margin-top: 4px; font-size: 0.92rem; }
+.account-label { margin: 0; color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.account-email { display: block; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-context { margin: 16px -18px 0; padding: 14px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; border-block: 1px solid var(--border); font-size: 0.75rem; }
+.account-context span { color: var(--muted); }
+.account-context strong { overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.account-signout { width: 100%; margin-top: 12px; padding: 9px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--danger); font-size: 0.8rem; font-weight: 650; text-align: left; cursor: pointer; }
+.account-signout:hover { background: #fff4f4; }
 .workspace-grid { height: calc(100vh - 62px); display: grid; grid-template-columns: 274px minmax(0, 1fr); }
 .notes-sidebar { min-height: 0; padding: 20px 14px; border-right: 1px solid var(--border); background: #fbfbf8; }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 14px; color: var(--muted); font-size: 0.71rem; font-weight: 760; letter-spacing: 0.1em; text-transform: uppercase; }
