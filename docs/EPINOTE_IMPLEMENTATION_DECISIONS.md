@@ -156,9 +156,22 @@ be triggered accidentally by opening user information.
 
 ## 2026-08-16: workspace renaming
 
-An active organization owner or admin may rename an active workspace from the
-visible top-bar workspace name or the account menu. Both entry points open the
-same explicit rename dialog. Renaming changes only the visible workspace `name`;
-its stable ID, internal slug, books, notes, permissions, and URLs do not change.
-The server authorizes the request through the active organization membership and
-scopes the update by organization and workspace IDs.
+An active organization owner or admin may rename an active workspace by
+double-clicking its visible top-bar name and editing it in place. Enter or moving
+focus away saves; Escape cancels. Keyboard users can begin editing with Enter or
+F2. This direct-edit interaction is the standard for other renameable labels as
+they are implemented; no separate visible rename action is shown. Renaming
+changes only the visible workspace `name`; its stable ID, internal slug, books,
+notes, permissions, and URLs do not change. The server authorizes the request
+through the active organization membership and scopes the update by organization
+and workspace IDs.
+
+## 2026-08-16: note row actions
+
+Each note row has a quiet three-dot action button that appears on hover, focus,
+or selection and remains visible on narrow touch layouts. Its first actions are
+Rename and Delete. Double-clicking the note label also starts the same inline
+rename interaction. Delete requires confirmation and archives the note instead
+of physically removing its data, preserving the recoverable lifecycle defined
+by the storage design. Both mutations remain scoped to the signed-in user's
+organization and workspace and use the note revision to prevent stale changes.

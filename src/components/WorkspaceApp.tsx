@@ -31,10 +31,13 @@ export function WorkspaceApp({
   const [renamingWorkspace, setRenamingWorkspace] = useState(false);
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
   const [workspaceError, setWorkspaceError] = useState("");
+  const [noteActionId, setNoteActionId] = useState<string | null>(null);
+  const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
+  const [noteTitleDraft, setNoteTitleDraft] = useState("");
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const userMenuRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     notesRef.current = notes;
@@ -137,10 +140,10 @@ export function WorkspaceApp({
   }, []);
 
   useEffect(() => {
-    if (!dirty || !selected || savingRef.current) return;
+    if (!dirty || !selected || savingRef.current || renamingNoteId) return;
     const timeout = window.setTimeout(() => void saveNote(selected), 900);
     return () => window.clearTimeout(timeout);
-  }, [dirty, selected, saveNote]);
+  }, [dirty, selected, saveNote, renamingNoteId]);
 
   function updateSelected(changes: Partial<Pick<Note, "title" | "body">>) {
     if (!selected) return;
@@ -281,7 +284,6 @@ export function WorkspaceApp({
   }
 
   function beginWorkspaceRename() {
-    userMenuRef.current?.removeAttribute("open");
     setWorkspaceDraft(workspaceName);
     setWorkspaceError("");
     setRenamingWorkspace(true);
@@ -293,6 +295,73 @@ export function WorkspaceApp({
     setRenamingWorkspace(false);
   }
 
+  async function beginNoteRename(note: Note) {
+    setNoteActionId(null);
+    if (note.id !== selectedId) {
+      if (dirty && selected && !(await saveNote(selected))) return;
+      setSelectedId(note.id);
+      setDirty(false);
+      setError("");
+      setPreview(false);
+    }
+    setNoteTitleDraft(note.title || "Untitled note");
+    setRenamingNoteId(note.id);
+  }
+
+  async function renameNote(event: React.FormEvent<HTMLFormElement>, noteId: string) {
+    event.preventDefault();
+    const note = notesRef.current.find((item) => item.id === noteId);
+    const title = noteTitleDraft.trim();
+    if (!note || !title || title.length > 200) return;
+    if (title === note.title) {
+      setRenamingNoteId(null);
+      return;
+    }
+
+    const nextNote = { ...note, title };
+    const nextNotes = notesRef.current.map((item) => (item.id === noteId ? nextNote : item));
+    notesRef.current = nextNotes;
+    setNotes(nextNotes);
+    setDirty(true);
+    setSaveState("Unsaved changes");
+    if (await saveNote(nextNote)) setRenamingNoteId(null);
+  }
+
+  async function deleteNote(note: Note) {
+    setNoteActionId(null);
+    if (!window.confirm(`Delete “${note.title || "Untitled note"}”?`)) return;
+    setDeletingNoteId(note.id);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/notes/${note.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedRevision: note.revision }),
+      });
+      const data = (await response.json()) as { error?: string; ok?: boolean };
+      if (!response.ok || !data.ok) {
+        setError(data.error || "Unable to delete this note.");
+        return;
+      }
+
+      const remaining = notesRef.current.filter((item) => item.id !== note.id);
+      notesRef.current = remaining;
+      setNotes(remaining);
+      window.localStorage.removeItem(`epinote:draft:${note.id}`);
+      if (selectedId === note.id) {
+        setSelectedId(remaining[0]?.id ?? null);
+        setDirty(false);
+        setSaveState("Saved");
+        setPreview(false);
+      }
+    } catch {
+      setError("EpiNote is unreachable. The note was not deleted.");
+    } finally {
+      setDeletingNoteId(null);
+    }
+  }
+
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = initialWorkspace.books[0];
 
@@ -302,16 +371,42 @@ export function WorkspaceApp({
         <div className="workspace-identity">
           <span className="wordmark workspace-wordmark">EpiNote</span>
           <span className="topbar-divider" />
-          <button
-            className="workspace-name workspace-name-button"
-            type="button"
-            onClick={beginWorkspaceRename}
-            title="Rename workspace"
-            aria-label={`Rename workspace ${workspaceName}`}
-          >
-            <span>{workspaceName}</span>
-            <span className="workspace-edit-mark" aria-hidden="true">Rename</span>
-          </button>
+          {renamingWorkspace ? (
+            <form className="workspace-inline-rename" onSubmit={renameWorkspace}>
+              <input
+                value={workspaceDraft}
+                onChange={(event) => setWorkspaceDraft(event.target.value)}
+                onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelWorkspaceRename();
+                  }
+                }}
+                aria-label="Workspace name"
+                minLength={2}
+                maxLength={100}
+                autoFocus
+                disabled={workspaceSaving}
+                required
+              />
+              {workspaceError && <span role="alert">{workspaceError}</span>}
+            </form>
+          ) : (
+            <span
+              className="workspace-name workspace-name-editable"
+              onDoubleClick={beginWorkspaceRename}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === "F2") beginWorkspaceRename();
+              }}
+              role="button"
+              tabIndex={0}
+              title="Double-click to rename"
+              aria-label={`${workspaceName}. Double-click to rename workspace.`}
+            >
+              {workspaceName}
+            </span>
+          )}
         </div>
         <label className="workspace-search">
           <span aria-hidden="true">⌕</span>
@@ -326,7 +421,7 @@ export function WorkspaceApp({
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
             {saveState}
           </span>
-          <details className="user-menu" ref={userMenuRef}>
+          <details className="user-menu">
             <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
               {avatar}
             </summary>
@@ -340,9 +435,6 @@ export function WorkspaceApp({
                 <span>Workspace</span>
                 <strong>{workspaceName}</strong>
               </div>
-              <button className="account-action" type="button" onClick={beginWorkspaceRename}>
-                Rename workspace
-              </button>
               <button className="account-signout" type="button" onClick={() => void logout()}>
                 Sign out
               </button>
@@ -363,19 +455,65 @@ export function WorkspaceApp({
           </button>
           <div className="note-list" aria-label="Notes">
             {filteredNotes.map((note) => (
-              <button
+              <div
                 className={`note-row ${note.id === selectedId ? "selected" : ""}`}
-                type="button"
                 key={note.id}
-                onClick={() => void chooseNote(note.id)}
               >
-                <span className="note-row-title">{note.title || "Untitled note"}</span>
-                <span className="note-row-date">
-                  {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-                    new Date(note.updatedAt),
-                  )}
-                </span>
-              </button>
+                {renamingNoteId === note.id ? (
+                  <form className="note-inline-rename" onSubmit={(event) => void renameNote(event, note.id)}>
+                    <input
+                      value={noteTitleDraft}
+                      onChange={(event) => setNoteTitleDraft(event.target.value)}
+                      onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setRenamingNoteId(null);
+                        }
+                      }}
+                      aria-label="Note name"
+                      maxLength={200}
+                      autoFocus
+                      required
+                    />
+                  </form>
+                ) : (
+                  <button
+                    className="note-row-main"
+                    type="button"
+                    onClick={() => void chooseNote(note.id)}
+                    onDoubleClick={() => void beginNoteRename(note)}
+                    title="Double-click to rename"
+                  >
+                    <span className="note-row-title">{note.title || "Untitled note"}</span>
+                    <span className="note-row-date">
+                      {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
+                        new Date(note.updatedAt),
+                      )}
+                    </span>
+                  </button>
+                )}
+                <button
+                  className="note-more-button"
+                  type="button"
+                  aria-label={`Actions for ${note.title || "Untitled note"}`}
+                  aria-expanded={noteActionId === note.id}
+                  onClick={() => setNoteActionId((current) => (current === note.id ? null : note.id))}
+                  disabled={deletingNoteId === note.id}
+                >
+                  {deletingNoteId === note.id ? "…" : "•••"}
+                </button>
+                {noteActionId === note.id && (
+                  <div className="note-actions-menu" role="menu">
+                    <button type="button" role="menuitem" onClick={() => void beginNoteRename(note)}>
+                      Rename
+                    </button>
+                    <button className="danger" type="button" role="menuitem" onClick={() => void deleteNote(note)}>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
             {filteredNotes.length === 0 && (
               <p className="empty-list">{notes.length ? "No notes match." : "Your first note starts here."}</p>
@@ -446,54 +584,6 @@ export function WorkspaceApp({
           )}
         </section>
       </div>
-      {renamingWorkspace && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !workspaceSaving) {
-              cancelWorkspaceRename();
-            }
-          }}
-        >
-          <section
-            className="workspace-rename-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rename-workspace-title"
-            aria-describedby="rename-workspace-description"
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && !workspaceSaving) cancelWorkspaceRename();
-            }}
-          >
-            <p className="eyebrow">Workspace settings</p>
-            <h2 id="rename-workspace-title">Rename workspace</h2>
-            <p id="rename-workspace-description">
-              The books and notes inside this workspace will not change.
-            </p>
-            <form className="workspace-rename-form" onSubmit={renameWorkspace}>
-              <label htmlFor="workspace-name">Workspace name</label>
-              <input
-                id="workspace-name"
-                value={workspaceDraft}
-                onChange={(event) => setWorkspaceDraft(event.target.value)}
-                minLength={2}
-                maxLength={100}
-                autoFocus
-                required
-              />
-              {workspaceError && <span role="alert">{workspaceError}</span>}
-              <div>
-                <button type="button" onClick={cancelWorkspaceRename} disabled={workspaceSaving}>
-                  Cancel
-                </button>
-                <button type="submit" disabled={workspaceSaving}>
-                  {workspaceSaving ? "Saving…" : "Save workspace name"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
     </main>
   );
 }

@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-visible-workspace-rename
-/opt/epinote/current -> /opt/epinote/releases/20260816-visible-workspace-rename
+/opt/epinote/releases/20260816-note-row-actions
+/opt/epinote/current -> /opt/epinote/releases/20260816-note-row-actions
 ```
 
 ## Service layout
@@ -56,8 +56,13 @@ mode: 0600
 ```
 
 The file contains the MongoDB application URI, base URL, database name, cookie
-mode, verification mode, and HMAC secret. Never print or copy its values into
-Git, tickets, or chat.
+mode, verification mode, HMAC secret, and `OPENROUTER_API_KEY`. Never print or
+copy its values into Git, tickets, or chat. The OpenRouter key is loaded into the
+service environment but is not used until a narrow AI workflow is implemented.
+
+The local source key remains outside the repository at
+`/Users/sumanth/epignos-notes/openrouter-epignos-test.txt` with mode `0600`.
+The server environment file also has mode `0600`.
 
 ## TLS
 
@@ -191,11 +196,22 @@ temporary account and tenant documents were removed after verification.
 
 ## 2026-08-16 workspace rename
 
-Organization owners/admins can rename the active workspace by selecting its
-visible name in the top bar or using the account menu. Both controls open the
-same focused dialog. Deployment verification registered a temporary user,
-confirmed that the top-bar rename control and dialog code were delivered,
-renamed the workspace, reloaded the page, and found the persisted name in the
-top bar. Earlier API verification also confirmed an unchanged slug, rejected an
-unrelated workspace ID with `404`, and rejected an invalid name with `400`. The
+Organization owners/admins can rename the active workspace by double-clicking
+its visible name in the top bar and editing it in place. Enter or moving focus
+away saves; Escape cancels. Enter and F2 provide the keyboard equivalent. No
+separate visible rename action is shown. Deployment verification registered a
+temporary user, confirmed that the inline-edit control was delivered, renamed
+the workspace, reloaded the page, and found the persisted name in the top bar.
+Earlier API verification also confirmed an unchanged slug, rejected an unrelated
+workspace ID with `404`, and rejected an invalid name with `400`. The temporary
+account and tenant were removed afterward.
+
+## 2026-08-16 note row actions
+
+Note rows expose a three-dot menu for Rename and Delete, and also support
+double-click inline rename. Delete archives the note so its stored content is
+recoverable while removing it from the active workspace. Live verification
+registered an isolated temporary user, created a note, renamed it at revision 1,
+deleted it at revision 2, confirmed it disappeared after workspace reload, and
+confirmed MongoDB retained it with `status: archived` and the renamed title. The
 temporary account and tenant were removed afterward.

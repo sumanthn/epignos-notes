@@ -11,6 +11,7 @@ const schema = z.object({
   AUTH_REQUIRE_EMAIL_VERIFICATION: booleanString.default(false),
   COOKIE_SECURE: booleanString.default(false),
   AUTH_HMAC_SECRET: z.string().min(32),
+  OPENROUTER_API_KEY: z.string().min(20).optional(),
 });
 
 export type ServerEnv = z.infer<typeof schema>;
