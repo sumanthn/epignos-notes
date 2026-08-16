@@ -15,6 +15,27 @@ type OrganizeProposal = {
   body: string;
 };
 
+type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus";
+
+function UiIcon({ name }: { name: UiIconName }) {
+  const paths: Record<UiIconName, React.ReactNode> = {
+    library: <><path d="M4 5h16" /><path d="M6 5v14h12V5" /><path d="M9 9v6" /><path d="M15 9v6" /></>,
+    capture: <><path d="M12 3v12" /><path d="m8 11 4 4 4-4" /><path d="M5 19h14" /></>,
+    book: <><path d="M5 4.5h11a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3Z" /><path d="M8 4.5V20" /></>,
+    note: <><path d="M6 3.5h8l4 4V20H6Z" /><path d="M14 3.5v4h4" /><path d="M9 12h6" /><path d="M9 16h5" /></>,
+    edit: <><path d="m4 20 4.2-1 10.5-10.5a2.1 2.1 0 0 0-3-3L5.2 16Z" /><path d="m14.5 6.5 3 3" /></>,
+    move: <><path d="M4 12h16" /><path d="m16 8 4 4-4 4" /><path d="M8 8 4 12l4 4" /></>,
+    trash: <><path d="M4 7h16" /><path d="M9 3h6l1 4H8Z" /><path d="m6 7 1 14h10l1-14" /><path d="M10 11v6M14 11v6" /></>,
+    plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
+  };
+
+  return (
+    <svg className="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {paths[name]}
+    </svg>
+  );
+}
+
 export function WorkspaceApp({
   initialWorkspace,
   userName,
@@ -79,6 +100,35 @@ export function WorkspaceApp({
       note.title.toLowerCase().includes(normalized) || note.body.toLowerCase().includes(normalized),
     );
   }, [activeBookId, notes, query]);
+
+  useEffect(() => {
+    if (!bookActionId && !noteActionId) return;
+
+    function closeActionMenus(event: PointerEvent) {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".book-more-button, .book-actions-menu, .note-more-button, .note-actions-menu")
+      ) {
+        return;
+      }
+      setBookActionId(null);
+      setNoteActionId(null);
+    }
+
+    function closeActionMenusWithKeyboard(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setBookActionId(null);
+      setNoteActionId(null);
+    }
+
+    document.addEventListener("pointerdown", closeActionMenus);
+    document.addEventListener("keydown", closeActionMenusWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeActionMenus);
+      document.removeEventListener("keydown", closeActionMenusWithKeyboard);
+    };
+  }, [bookActionId, noteActionId]);
 
   useEffect(() => {
     if (!selected) return;
@@ -786,11 +836,14 @@ export function WorkspaceApp({
             onDoubleClick={() => void beginNoteRename(note)}
             title="Double-click to rename"
           >
-            <span className="note-row-title">{note.title || "Untitled note"}</span>
-            <span className="note-row-date">
-              {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-                new Date(note.updatedAt),
-              )}
+            <UiIcon name="note" />
+            <span className="note-row-copy">
+              <span className="note-row-title">{note.title || "Untitled note"}</span>
+              <span className="note-row-date">
+                {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
+                  new Date(note.updatedAt),
+                )}
+              </span>
             </span>
           </button>
         )}
@@ -799,18 +852,25 @@ export function WorkspaceApp({
           type="button"
           aria-label={`Actions for ${note.title || "Untitled note"}`}
           aria-expanded={noteActionId === note.id}
-          onClick={() => setNoteActionId((current) => (current === note.id ? null : note.id))}
+          onClick={() => {
+            setBookActionId(null);
+            setNoteActionId((current) => (current === note.id ? null : note.id));
+          }}
           disabled={deletingNoteId === note.id || movingNoteId === note.id}
         >
           {deletingNoteId === note.id || movingNoteId === note.id ? "…" : "•••"}
         </button>
         {noteActionId === note.id && (
           <div className="note-actions-menu">
+            <div className="action-menu-context">
+              <UiIcon name="note" />
+              <span><small>Note</small><strong>{note.title || "Untitled note"}</strong></span>
+            </div>
             <button type="button" onClick={() => void beginNoteRename(note)}>
-              Rename
+              <UiIcon name="edit" /> Rename
             </button>
             <label className="note-move-control">
-              <span>Move to</span>
+              <span className="action-menu-label"><UiIcon name="move" /> Move to</span>
               <select
                 value=""
                 aria-label={`Move ${note.title || "Untitled note"} to another book`}
@@ -826,7 +886,7 @@ export function WorkspaceApp({
               </select>
             </label>
             <button className="danger" type="button" onClick={() => void deleteNote(note)}>
-              Delete
+              <UiIcon name="trash" /> Delete
             </button>
           </div>
         )}
@@ -915,14 +975,14 @@ export function WorkspaceApp({
       <div className="workspace-grid">
         <aside className="notes-sidebar">
           <div className="sidebar-heading">
-            <span>Library</span>
+            <span className="sidebar-heading-label"><UiIcon name="library" /> Library</span>
             <button
               type="button"
               aria-label={addingBook ? "Cancel new book" : "Create book"}
               aria-expanded={addingBook}
               title={addingBook ? "Cancel new book" : "Create book"}
               onClick={toggleBookCreator}
-            >{addingBook ? "×" : "+"}</button>
+            >{addingBook ? "×" : <UiIcon name="plus" />}</button>
           </div>
           <div className="book-list" aria-label="Library">
             {books.map((book) =>
@@ -988,6 +1048,7 @@ export function WorkspaceApp({
                     title={book.systemKey === "unsorted" ? "Default place for quick captures" : "Double-click to rename"}
                   >
                     <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
+                    <UiIcon name={book.systemKey === "unsorted" ? "capture" : "book"} />
                     <strong>{book.name}</strong>
                     <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
                       {book.noteCount}
@@ -999,7 +1060,10 @@ export function WorkspaceApp({
                       type="button"
                       aria-label={`Actions for ${book.name}`}
                       aria-expanded={bookActionId === book.id}
-                      onClick={() => setBookActionId((current) => current === book.id ? null : book.id)}
+                      onClick={() => {
+                        setNoteActionId(null);
+                        setBookActionId((current) => current === book.id ? null : book.id);
+                      }}
                       disabled={deletingBookId === book.id}
                     >
                       {deletingBookId === book.id ? "…" : "•••"}
@@ -1007,7 +1071,13 @@ export function WorkspaceApp({
                   )}
                   {bookActionId === book.id && (
                     <div className="book-actions-menu">
-                      <button type="button" onClick={() => beginBookRename(book)}>Rename</button>
+                      <div className="action-menu-context">
+                        <UiIcon name="book" />
+                        <span><small>Book</small><strong>{book.name}</strong></span>
+                      </div>
+                      <button type="button" onClick={() => beginBookRename(book)}>
+                        <UiIcon name="edit" /> Rename
+                      </button>
                       <button
                         className="danger"
                         type="button"
@@ -1015,9 +1085,9 @@ export function WorkspaceApp({
                         disabled={book.noteCount > 0}
                         title={book.noteCount > 0 ? "Move or delete every note first" : "Delete empty book"}
                       >
-                        Delete empty book
+                        <UiIcon name="trash" /> Delete
                       </button>
-                      {book.noteCount > 0 && <span>Move or delete its notes first.</span>}
+                      {book.noteCount > 0 && <p>Move or delete its notes before deleting this book.</p>}
                     </div>
                   )}
                   {book.id === activeBookId && !query.trim() && (
@@ -1032,7 +1102,7 @@ export function WorkspaceApp({
                         onClick={createNote}
                         disabled={creating}
                       >
-                        <span>+</span>{creating ? "Creating…" : "New note"}
+                        <UiIcon name="plus" />{creating ? "Creating…" : "New note"}
                       </button>
                     </div>
                   )}

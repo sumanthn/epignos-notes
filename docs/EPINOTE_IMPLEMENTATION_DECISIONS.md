@@ -296,3 +296,15 @@ Workspace search temporarily replaces the expanded branch with a clearly
 labeled cross-book result list. Selecting a result still opens its containing
 book. Existing drag-and-drop movement and note action menus remain available in
 both the normal tree and search results.
+
+## 2026-08-16: contextual icons and dismissible action menus
+
+Library navigation uses one restrained line-icon vocabulary to distinguish the
+Library, Quick Capture, books, notes, and creation actions without adding color
+noise. Book and note popovers identify their entity type and current name, then
+pair Rename, Move, and Delete labels with matching icons; labels remain present
+for clarity and accessibility.
+
+Book and note action menus close when their trigger is pressed again, when
+another action menu opens, on any click outside the trigger or popover, or when
+Escape is pressed. This prevents a popover from remaining over the note tree.

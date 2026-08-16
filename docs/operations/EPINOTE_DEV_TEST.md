@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-library-tree
-/opt/epinote/current -> /opt/epinote/releases/20260816-library-tree
+/opt/epinote/releases/20260816-contextual-icons
+/opt/epinote/current -> /opt/epinote/releases/20260816-contextual-icons
 ```
 
 ## Service layout
@@ -404,3 +404,16 @@ rendered order `Quick Capture -> Nested tree note -> New note`, and confirmed th
 deployed stylesheet contained the tree rail and nested creation control. The
 workspace and public health endpoint returned `200`. The temporary tenant and
 all associated data were removed afterward.
+
+## 2026-08-16 contextual icons and menu dismissal
+
+The Library tree now distinguishes Quick Capture, regular books, and notes with
+consistent line icons. Book and note popovers show the entity type and name and
+use labeled icons for Rename, Move, and Delete. Menus close on an outside click,
+Escape, trigger toggle, or opening another menu.
+
+Live verification confirmed the authenticated workspace rendered the icon set,
+the deployed client contained the outside-click dismissal handler and contextual
+book menu, and the stylesheet contained the contextual action layout. Public
+health and the workspace returned `200`. The isolated test tenant and all of its
+data were removed afterward.
