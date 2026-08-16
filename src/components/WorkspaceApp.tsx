@@ -267,33 +267,33 @@ export function WorkspaceApp({
     }
   }
 
-  function formatSelection(before: string, after = before) {
+  function startBulletList() {
     const editor = editorRef.current;
     if (!editor || !selected) return;
     const start = editor.selectionStart;
     const end = editor.selectionEnd;
-    const nextBody =
-      selected.body.slice(0, start) +
-      before +
-      selected.body.slice(start, end) +
-      after +
-      selected.body.slice(end);
+    const selection = selected.body.slice(start, end);
+    const bulleted = selection
+      ? selection.split("\n").map((line) => `• ${line}`).join("\n")
+      : "• ";
+    const nextBody = selected.body.slice(0, start) + bulleted + selected.body.slice(end);
     updateSelected({ body: nextBody });
     window.setTimeout(() => {
       editor.focus();
-      editor.setSelectionRange(start + before.length, end + before.length);
+      const cursor = selection ? start + bulleted.length : start + 2;
+      editor.setSelectionRange(cursor, cursor);
     }, 0);
   }
 
   function exportNote() {
     if (!selected) return;
-    const blob = new Blob([`# ${selected.title}\n\n${selected.body}\n`], {
-      type: "text/markdown;charset=utf-8",
+    const blob = new Blob([`${selected.title}\n\n${selected.body}\n`], {
+      type: "text/plain;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${selected.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "note"}.md`;
+    link.download = `${selected.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "note"}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -737,12 +737,10 @@ export function WorkspaceApp({
                 />
               </div>
               <div className="format-bar" aria-label="Formatting">
-                <button type="button" onClick={() => setPreview(false)} className={!preview ? "active" : ""}>Write</button>
-                <button type="button" onClick={() => formatSelection("**")} aria-label="Bold"><strong>B</strong></button>
-                <button type="button" onClick={() => formatSelection("_")} aria-label="Italic"><em>I</em></button>
-                <button type="button" onClick={() => formatSelection("- ", "")} aria-label="List">List</button>
+                <button type="button" onClick={() => setPreview(false)} className={!preview ? "active" : ""}>Edit</button>
+                <button type="button" onClick={startBulletList} aria-label="Bullet list">• List</button>
                 <span className="format-spacer" />
-                <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Preview</button>
+                <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Read</button>
               </div>
               <div className="editor-area">
                 {preview ? (
@@ -820,7 +818,7 @@ export function WorkspaceApp({
                     <div className="organize-proposal">
                       <p className="organize-proposal-label">Proposed title</p>
                       <h3>{organizeProposal.title}</h3>
-                      <p className="organize-proposal-label">Proposed structure</p>
+                      <p className="organize-proposal-label">Proposed layout</p>
                       <pre>{organizeProposal.body}</pre>
                       <footer>
                         <button className="button button-secondary button-small" type="button" onClick={closeOrganizePanel} disabled={organizeState === "applying"}>

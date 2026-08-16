@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-organize-panel-v2
-/opt/epinote/current -> /opt/epinote/releases/20260816-organize-panel-v2
+/opt/epinote/releases/20260816-plain-text-organize
+/opt/epinote/current -> /opt/epinote/releases/20260816-plain-text-organize
 ```
 
 ## Service layout
@@ -279,3 +279,30 @@ accepted proposal linked on note       yes
 
 All temporary users, tenant data, proposals, and revision snapshots were removed
 after verification.
+
+## 2026-08-16 plain-text-first notes
+
+Ordinary note editing no longer asks users to understand Markdown. The toolbar
+is `Edit`, `• List`, and `Read`; the list action inserts a normal Unicode bullet.
+Export downloads `.txt`. AI organization prompt version
+`organize-v2-plain-text` produces section labels, spacing, and Unicode bullets
+while explicitly forbidding Markdown markers. Prompt version participates in
+proposal caching so an older Markdown-oriented proposal is never reused. The API
+also normalizes common Markdown markers if a model returns them anyway.
+
+Live verification used an isolated temporary tenant and confirmed:
+
+```text
+plain-text note saved                 revision 2
+AI proposal                           no Markdown markers
+name, URL, and all timestamps         preserved
+applied organized layout              revision 3
+proposal status                       accepted
+prompt version                         organize-v2-plain-text
+before-ai-apply revision snapshot      present
+accepted proposal linked on note       yes
+public HTTPS health check              database reachable
+```
+
+The temporary user, session, organization, workspace, book, note, proposal, and
+revision snapshot were removed after verification.

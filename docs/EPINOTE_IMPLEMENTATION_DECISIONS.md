@@ -198,16 +198,23 @@ active and belongs to the signed-in user's organization and workspace.
 `Organize` is EpiNote's first narrow AI workflow. It opens a panel inside the
 note editor and sends only the currently saved title and plain text to OpenRouter
 after an explicit user click. The model must return a strict JSON object with a
-proposed title and complete Markdown body. The prompt forbids adding facts or
-dropping names, links, timestamps, claims, or source details.
+proposed title and complete plain-text body. The prompt forbids Markdown syntax,
+adding facts, or dropping names, links, timestamps, claims, or source details.
+Readable structure uses section labels, blank lines, and Unicode bullets.
 
 The proposal is stored against the exact note revision and content hash. The
 original remains canonical until the user selects `Apply organization`; the
 server then revalidates tenant scope, revision, and hash before atomically
 replacing the note content. A stale proposal returns `409`. Repeated requests for
-the same revision reuse the stored proposal rather than spending another model
-request. The initial configurable model is `openai/gpt-oss-20b` through
-OpenRouter structured outputs.
+the same revision and prompt version reuse the stored proposal rather than
+spending another model request. The initial configurable model is
+`openai/gpt-oss-20b` through OpenRouter structured outputs.
+
+The first editor is plain-text-first. Its toolbar uses `Edit`, a Unicode bullet
+list action, and `Read`; it does not expose Markdown bold/italic controls. Export
+downloads `.txt` so a user never needs Markdown knowledge for ordinary notes.
+The API also normalizes accidental Markdown headings, bullets, bold markers,
+inline code, and code fences before showing or applying an AI proposal.
 
 ## 2026-08-16: explicit autosave feedback
 
