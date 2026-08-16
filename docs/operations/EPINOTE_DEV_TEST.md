@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-summary-title-v3-low
-/opt/epinote/current -> /opt/epinote/releases/20260816-summary-title-v3-low
+/opt/epinote/releases/20260816-book-sidebar-polish-v2
+/opt/epinote/current -> /opt/epinote/releases/20260816-book-sidebar-polish-v2
 ```
 
 ## Service layout
@@ -339,3 +339,16 @@ public HTTPS health                     database reachable
 ```
 
 The temporary tenant and all associated data were removed after verification.
+
+## 2026-08-16 book sidebar polish
+
+Every book is a bordered horizontal row with selected-state emphasis and an
+authoritative active-note count. The new-book form can be dismissed through its
+visible cancel button, the Library toggle, Escape, focus leaving the form, or a
+book selection.
+
+Live verification created a book and note in an isolated tenant, confirmed the
+new-book API returned count zero, confirmed the rendered workspace showed count
+one after note creation, and confirmed the deployed client and stylesheet
+contained the cancel interaction and row styles. The public HTTPS health check
+reported the database reachable. The temporary tenant was removed afterward.

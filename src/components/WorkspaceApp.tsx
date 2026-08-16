@@ -205,6 +205,11 @@ export function WorkspaceApp({
         return;
       }
       setNotes((current) => [data.note!, ...current]);
+      setBooks((current) =>
+        current.map((book) =>
+          book.id === data.note!.bookId ? { ...book, noteCount: book.noteCount + 1 } : book,
+        ),
+      );
       setSelectedId(data.note.id);
       setDirty(false);
       setSaveState("Saved");
@@ -219,6 +224,7 @@ export function WorkspaceApp({
   }
 
   async function chooseBook(bookId: string) {
+    closeBookCreator();
     if (bookId === activeBookId) return;
     if (dirty && selected && !(await saveNote(selected))) return;
     setActiveBookId(bookId);
@@ -228,6 +234,21 @@ export function WorkspaceApp({
     setPreview(false);
     setQuery("");
     closeOrganizePanel();
+  }
+
+  function closeBookCreator() {
+    if (bookSaving) return;
+    setAddingBook(false);
+    setBookNameDraft("");
+    setBookError("");
+  }
+
+  function toggleBookCreator() {
+    if (addingBook) closeBookCreator();
+    else {
+      setBookError("");
+      setAddingBook(true);
+    }
   }
 
   async function createBook(event: React.FormEvent<HTMLFormElement>) {
@@ -246,7 +267,7 @@ export function WorkspaceApp({
       });
       const data = (await response.json()) as {
         error?: string;
-        book?: { id: string; name: string; systemKey: string | null };
+        book?: { id: string; name: string; systemKey: string | null; noteCount: number };
       };
       if (!response.ok || !data.book) {
         setBookError(data.error || "Unable to create this book.");
@@ -419,6 +440,13 @@ export function WorkspaceApp({
       const remaining = notesRef.current.filter((item) => item.id !== note.id);
       notesRef.current = remaining;
       setNotes(remaining);
+      setBooks((current) =>
+        current.map((book) =>
+          book.id === note.bookId
+            ? { ...book, noteCount: Math.max(0, book.noteCount - 1) }
+            : book,
+        ),
+      );
       window.localStorage.removeItem(`epinote:draft:${note.id}`);
       if (selectedId === note.id) {
         setSelectedId(remaining.find((item) => item.bookId === activeBookId)?.id ?? null);
@@ -599,13 +627,11 @@ export function WorkspaceApp({
             <span>Library</span>
             <button
               type="button"
-              aria-label="Create book"
-              title="Create book"
-              onClick={() => {
-                setBookError("");
-                setAddingBook(true);
-              }}
-            >+</button>
+              aria-label={addingBook ? "Cancel new book" : "Create book"}
+              aria-expanded={addingBook}
+              title={addingBook ? "Cancel new book" : "Create book"}
+              onClick={toggleBookCreator}
+            >{addingBook ? "×" : "+"}</button>
           </div>
           <div className="book-list" aria-label="Library">
             {books.map((book) => (
@@ -618,18 +644,27 @@ export function WorkspaceApp({
               >
                 <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
                 <strong>{book.name}</strong>
+                <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
+                  {book.noteCount}
+                </span>
               </button>
             ))}
             {addingBook && (
-              <form className="book-create-form" onSubmit={createBook}>
+              <form
+                className="book-create-form"
+                onSubmit={createBook}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    closeBookCreator();
+                  }
+                }}
+              >
                 <input
                   value={bookNameDraft}
                   onChange={(event) => setBookNameDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Escape") {
-                      setAddingBook(false);
-                      setBookNameDraft("");
-                      setBookError("");
+                      closeBookCreator();
                     }
                   }}
                   placeholder="Book name"
@@ -640,6 +675,13 @@ export function WorkspaceApp({
                   required
                 />
                 <button type="submit" aria-label="Add book" disabled={bookSaving}>✓</button>
+                <button
+                  className="book-create-cancel"
+                  type="button"
+                  aria-label="Cancel new book"
+                  onClick={closeBookCreator}
+                  disabled={bookSaving}
+                >×</button>
                 {bookError && <span role="alert">{bookError}</span>}
               </form>
             )}

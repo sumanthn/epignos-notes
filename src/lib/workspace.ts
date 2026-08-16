@@ -13,7 +13,7 @@ export interface WorkspaceIdentity {
 export interface WorkspacePayload {
   organization: { id: string; name: string };
   workspace: { id: string; name: string };
-  books: Array<{ id: string; name: string; systemKey: string | null }>;
+  books: Array<{ id: string; name: string; systemKey: string | null; noteCount: number }>;
   notes: Array<{
     id: string;
     bookId: string;
@@ -132,7 +132,7 @@ export async function getWorkspacePayload(user: SessionUser): Promise<WorkspaceP
   const identity = await ensurePersonalHierarchy(user.id, user.displayName);
   const db = await getDb();
 
-  const [organization, workspace, books, notes] = await Promise.all([
+  const [organization, workspace, books, notes, noteCounts] = await Promise.all([
     db.collection("organizations").findOne({
       _id: identity.organizationId,
       status: "active",
@@ -161,9 +161,26 @@ export async function getWorkspacePayload(user: SessionUser): Promise<WorkspaceP
       .sort({ updatedAt: -1 })
       .limit(200)
       .toArray(),
+    db
+      .collection("notes")
+      .aggregate<{ _id: ObjectId; count: number }>([
+        {
+          $match: {
+            organizationId: identity.organizationId,
+            workspaceId: identity.workspaceId,
+            status: "active",
+          },
+        },
+        { $group: { _id: "$bookId", count: { $sum: 1 } } },
+      ])
+      .toArray(),
   ]);
 
   if (!organization || !workspace) throw new Error("Workspace is unavailable");
+
+  const noteCountByBook = new Map(
+    noteCounts.map((item) => [item._id.toHexString(), item.count]),
+  );
 
   return {
     organization: { id: organization._id.toHexString(), name: organization.name },
@@ -172,6 +189,7 @@ export async function getWorkspacePayload(user: SessionUser): Promise<WorkspaceP
       id: book._id.toHexString(),
       name: book.name,
       systemKey: typeof book.systemKey === "string" ? book.systemKey : null,
+      noteCount: noteCountByBook.get(book._id.toHexString()) ?? 0,
     })),
     notes: notes.map((note) => ({
       id: note._id.toHexString(),

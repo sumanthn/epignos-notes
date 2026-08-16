@@ -244,3 +244,15 @@ Save button incorrectly looked like the editor was blocked, so the saved state
 is now rendered as `✓ Saved automatically`. While changes are pending, the same
 footer position shows an active `Save now` button; a failed attempt shows
 `Retry save`. The top-bar state uses the same explicit autosave wording.
+
+## 2026-08-16: book sidebar interaction and hierarchy
+
+Books render as consistent full-width horizontal rows with subtle borders, a
+selected cobalt inset, and authoritative active-note counts. Counts come from a
+MongoDB aggregation rather than the workspace's bounded note list and update in
+the client after note creation or deletion.
+
+The new-book control is a toggle. Its form has an explicit cancel button and
+also closes on Escape, focus leaving the form, or selection of any book,
+including the already-active book. Draft text and errors are cleared whenever
+the form is dismissed.

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     await db.collection("books").insertOne(book);
     return NextResponse.json(
-      { book: { id: book._id.toHexString(), name: book.name, systemKey: null } },
+      { book: { id: book._id.toHexString(), name: book.name, systemKey: null, noteCount: 0 } },
       { status: 201 },
     );
   } catch (error) {
