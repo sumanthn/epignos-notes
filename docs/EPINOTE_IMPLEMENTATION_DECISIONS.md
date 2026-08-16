@@ -315,17 +315,41 @@ Note storage and AI organization have separate limits. Canonical notes remain
 saveable up to 1,000,000 characters. AI organization no longer rejects every
 note above 30,000 characters.
 
-Normal notes use `openai/gpt-oss-120b`. The request size is measured as UTF-8
-bytes after constructing the actual user message, and the completion allowance
-grows with the input so the model can return the complete organized body. Notes
-beyond GPT-OSS's conservative one-pass allowance route to the configurable
-`OPENROUTER_LARGE_NOTE_MODEL`, defaulting to `deepseek/deepseek-v4-pro`. The
-fallback was selected from the live OpenRouter catalog because its 1M context
-and large completion ceiling can accommodate both the source and a full-length
-organized result. Extremely large notes that cannot safely fit one request remain
-fully saved and receive an explicit suggestion to split them before organizing.
+The request size is measured as UTF-8 bytes after constructing the actual user
+message, and the completion allowance grows with the input. Standard requests
+try `openai/gpt-oss-120b`, requests from 30,000 through 130,000 bytes use the
+configurable fast model (`google/gemini-3.6-flash`), and still larger supported
+requests use `deepseek/deepseek-v4-pro`. Standard-model failures retry through
+the fast model; fast-model failures retry through the large-output model. This
+three-tier route reflects live behavior instead of assuming one model is best at
+every note size.
 
 AI requests have bounded timeouts, nginx allows the longer upstream response,
 and a model response ending because of its token limit is rejected without
 changing the note. The original note remains canonical until the user explicitly
 applies a complete proposal.
+
+## 2026-08-16: durable background organization and notifications
+
+Organize no longer holds a browser request open while a model runs. Note and
+book actions create durable `aiJobs` documents, return HTTP `202`, and use
+Next.js `after()` to process jobs after the response. A workspace-level unique
+lease allows only one organization job to process at a time. Queued and stale
+jobs are recoverable through polling, so a closed or reloaded page does not lose
+work. A top-right bell shows the latest job per note and links back to the note
+for review.
+
+Book organization queues every non-empty note but never applies proposals.
+Canonical notes remain unchanged until the user explicitly approves one note's
+proposal. Failed notes do not prevent the remaining book jobs from progressing.
+
+## 2026-08-16: deterministic source-preservation gate
+
+Real `Ideologies` data showed that valid structured JSON can still summarize
+away most of a source note. Prompt version `organize-v4-source-preserving`
+therefore adds a deterministic validation step: an organized body must retain
+at least 60 percent of the source character volume and every detected source URL
+and timestamp. A response that fails validation is discarded, optionally
+retried through the next model tier, and never presented as an approvable
+proposal. Existing version-3 proposals are reused only when they pass the same
+gate.

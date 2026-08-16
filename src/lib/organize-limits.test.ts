@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_FAST_ORGANIZE_COMPLETION_TOKENS,
+  MAX_FAST_ORGANIZE_USER_MESSAGE_BYTES,
   MAX_LARGE_ORGANIZE_COMPLETION_TOKENS,
   MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES,
   MAX_STANDARD_ORGANIZE_COMPLETION_TOKENS,
@@ -10,12 +12,12 @@ import {
 } from "./organize-limits";
 
 describe("large-note organization limits", () => {
-  it("routes the previously failing 30,000-to-40,000 character range as large", () => {
+  it("routes real 30,000-to-64,000 character notes through the fast-model tier", () => {
     expect(organizeMessageBytes("a".repeat(40_000))).toBeGreaterThan(
       MAX_STANDARD_ORGANIZE_USER_MESSAGE_BYTES,
     );
-    expect(organizeMessageBytes("a".repeat(40_000))).toBeLessThan(
-      MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES,
+    expect(organizeMessageBytes("a".repeat(64_007))).toBeLessThan(
+      MAX_FAST_ORGANIZE_USER_MESSAGE_BYTES,
     );
   });
 
@@ -32,9 +34,18 @@ describe("large-note organization limits", () => {
   });
 
   it("provides a separate long-context allowance without weakening the normal route", () => {
-    expect(MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES).toBeGreaterThan(
+    expect(MAX_FAST_ORGANIZE_USER_MESSAGE_BYTES).toBeGreaterThan(
       MAX_STANDARD_ORGANIZE_USER_MESSAGE_BYTES,
     );
+    expect(MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES).toBeGreaterThan(
+      MAX_FAST_ORGANIZE_USER_MESSAGE_BYTES,
+    );
+    expect(
+      organizeCompletionTokenBudget(
+        MAX_FAST_ORGANIZE_USER_MESSAGE_BYTES,
+        MAX_FAST_ORGANIZE_COMPLETION_TOKENS,
+      ),
+    ).toBeLessThanOrEqual(MAX_FAST_ORGANIZE_COMPLETION_TOKENS);
     expect(
       organizeCompletionTokenBudget(
         MAX_LARGE_ORGANIZE_USER_MESSAGE_BYTES,

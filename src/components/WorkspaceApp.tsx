@@ -14,8 +14,21 @@ type OrganizeProposal = {
   title: string;
   body: string;
 };
+type AiJobStatus = "queued" | "processing" | "completed" | "failed" | "applied";
+type AiJobNotification = {
+  id: string;
+  noteId: string;
+  bookId: string;
+  noteTitle: string;
+  bookName: string;
+  status: AiJobStatus;
+  error: string | null;
+  proposalId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
-type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus";
+type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus" | "sparkles" | "bell";
 
 function UiIcon({ name }: { name: UiIconName }) {
   const paths: Record<UiIconName, React.ReactNode> = {
@@ -27,6 +40,8 @@ function UiIcon({ name }: { name: UiIconName }) {
     move: <><path d="M4 12h16" /><path d="m16 8 4 4-4 4" /><path d="M8 8 4 12l4 4" /></>,
     trash: <><path d="M4 7h16" /><path d="M9 3h6l1 4H8Z" /><path d="m6 7 1 14h10l1-14" /><path d="M10 11v6M14 11v6" /></>,
     plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
+    sparkles: <><path d="m12 3 1.3 3.7L17 8l-3.7 1.3L12 13l-1.3-3.7L7 8l3.7-1.3Z" /><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z" /><path d="M5 13v4M3 15h4" /></>,
+    bell: <><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7" /><path d="M10 20h4" /></>,
   };
 
   return (
@@ -84,13 +99,48 @@ export function WorkspaceApp({
   const [organizeState, setOrganizeState] = useState<OrganizeState>("idle");
   const [organizeProposal, setOrganizeProposal] = useState<OrganizeProposal | null>(null);
   const [organizeError, setOrganizeError] = useState("");
+  const [aiJobs, setAiJobs] = useState<AiJobNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationSeenAt, setNotificationSeenAt] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const stored = Number(window.localStorage.getItem("epinote:ai-notifications-seen"));
+    return Number.isFinite(stored) ? stored : 0;
+  });
+  const [organizingBookId, setOrganizingBookId] = useState<string | null>(null);
+  const [backgroundMessage, setBackgroundMessage] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const organizePollRef = useRef<number | null>(null);
 
   useEffect(() => {
     notesRef.current = notes;
   }, [notes]);
+
+  const loadAiJobs = useCallback(async (): Promise<void> => {
+    try {
+      const response = await fetch("/api/ai/jobs", { cache: "no-store" });
+      const data = (await response.json()) as {
+        jobs?: AiJobNotification[];
+      };
+      if (response.ok && data.jobs) setAiJobs(data.jobs);
+    } catch {
+      // Keep the last known notifications during a temporary connection failure.
+    }
+  }, []);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => void loadAiJobs(), 0);
+    const interval = window.setInterval(() => void loadAiJobs(), 5_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [loadAiJobs]);
+
+  useEffect(() => () => {
+    if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
+  }, []);
 
   const selected = notes.find((note) => note.id === selectedId) ?? null;
   const filteredNotes = useMemo(() => {
@@ -129,6 +179,23 @@ export function WorkspaceApp({
       document.removeEventListener("keydown", closeActionMenusWithKeyboard);
     };
   }, [bookActionId, noteActionId]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    function closeNotifications(event: PointerEvent) {
+      if (event.target instanceof Element && event.target.closest(".notification-center")) return;
+      setNotificationsOpen(false);
+    }
+    function closeNotificationsWithKeyboard(event: KeyboardEvent) {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    }
+    document.addEventListener("pointerdown", closeNotifications);
+    document.addEventListener("keydown", closeNotificationsWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeNotifications);
+      document.removeEventListener("keydown", closeNotificationsWithKeyboard);
+    };
+  }, [notificationsOpen]);
 
   useEffect(() => {
     if (!selected) return;
@@ -708,10 +775,53 @@ export function WorkspaceApp({
   }
 
   function closeOrganizePanel() {
+    if (organizePollRef.current !== null) {
+      window.clearTimeout(organizePollRef.current);
+      organizePollRef.current = null;
+    }
     setOrganizePanelOpen(false);
     setOrganizeState("idle");
     setOrganizeProposal(null);
     setOrganizeError("");
+  }
+
+  function scheduleOrganizePoll(noteId: string) {
+    if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
+    organizePollRef.current = window.setTimeout(() => void pollOrganization(noteId), 2_500);
+  }
+
+  async function pollOrganization(noteId: string) {
+    try {
+      const response = await fetch(`/api/notes/${noteId}/organize`, { cache: "no-store" });
+      const data = (await response.json()) as {
+        error?: string;
+        proposal?: OrganizeProposal;
+        job?: { status: AiJobStatus; error: string | null } | null;
+      };
+      if (data.proposal) {
+        setOrganizeProposal(data.proposal);
+        setOrganizeState("ready");
+        organizePollRef.current = null;
+        void loadAiJobs();
+        return;
+      }
+      if (!response.ok || data.job?.status === "failed") {
+        setOrganizeError(data.error || data.job?.error || "Unable to organize this note.");
+        setOrganizeState("error");
+        organizePollRef.current = null;
+        void loadAiJobs();
+        return;
+      }
+      if (data.job === null) {
+        setOrganizeError("This note changed after the background job started. Organize it again.");
+        setOrganizeState("error");
+        organizePollRef.current = null;
+        return;
+      }
+      scheduleOrganizePoll(noteId);
+    } catch {
+      scheduleOrganizePoll(noteId);
+    }
   }
 
   async function organizeNote() {
@@ -735,17 +845,61 @@ export function WorkspaceApp({
       const data = (await response.json()) as {
         error?: string;
         proposal?: OrganizeProposal;
+        job?: { status: AiJobStatus; error: string | null };
       };
-      if (!response.ok || !data.proposal) {
+      if (!response.ok) {
         setOrganizeError(data.error || "Unable to organize this note.");
         setOrganizeState("error");
         return;
       }
-      setOrganizeProposal(data.proposal);
-      setOrganizeState("ready");
+      if (data.proposal) {
+        setOrganizeProposal(data.proposal);
+        setOrganizeState("ready");
+      } else if (data.job) {
+        scheduleOrganizePoll(selected.id);
+        void loadAiJobs();
+      } else {
+        setOrganizeError("Unable to start organization for this note.");
+        setOrganizeState("error");
+      }
     } catch {
       setOrganizeError("EpiNote cannot reach the AI service right now.");
       setOrganizeState("error");
+    }
+  }
+
+  async function organizeBook(book: WorkspacePayload["books"][number]) {
+    if (organizingBookId || book.noteCount === 0) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setBookActionId(null);
+    setOrganizingBookId(book.id);
+    setBackgroundMessage("");
+    setError("");
+    try {
+      const response = await fetch(`/api/books/${book.id}/organize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        organization?: { total: number; ready: number; background: number; skipped: number };
+      };
+      if (!response.ok || !data.organization) {
+        setError(data.error || "Unable to organize this book.");
+        return;
+      }
+      setBackgroundMessage(
+        data.organization.background > 0
+          ? `Organizing ${data.organization.background} notes from ${book.name} in the background${data.organization.skipped ? `; ${data.organization.skipped} could not be queued` : ""}.`
+          : `${data.organization.ready} notes from ${book.name} are ready to review.`,
+      );
+      setNotificationsOpen(true);
+      void loadAiJobs();
+    } catch {
+      setError("EpiNote is unreachable. Book organization was not started.");
+    } finally {
+      setOrganizingBookId(null);
     }
   }
 
@@ -787,6 +941,45 @@ export function WorkspaceApp({
 
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = books.find((book) => book.id === activeBookId) ?? null;
+  const activeAiJobCount = aiJobs.filter(
+    (job) => job.status === "queued" || job.status === "processing",
+  ).length;
+  const unreadAiJobCount = aiJobs.filter(
+    (job) =>
+      (job.status === "completed" || job.status === "failed") &&
+      new Date(job.updatedAt).getTime() > notificationSeenAt,
+  ).length;
+  const notificationBadgeCount = activeAiJobCount + unreadAiJobCount;
+
+  function toggleNotifications() {
+    setNotificationsOpen((current) => {
+      const next = !current;
+      if (next) {
+        const seenAt = Date.now();
+        setNotificationSeenAt(seenAt);
+        window.localStorage.setItem("epinote:ai-notifications-seen", String(seenAt));
+      }
+      return next;
+    });
+  }
+
+  async function openAiNotification(job: AiJobNotification) {
+    const note = notesRef.current.find((item) => item.id === job.noteId);
+    if (!note) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setNotificationsOpen(false);
+    setActiveBookId(note.bookId);
+    setSelectedId(note.id);
+    setDirty(false);
+    setError("");
+    setPreview(false);
+    if (job.status === "applied") return;
+    setOrganizePanelOpen(true);
+    setOrganizeProposal(null);
+    setOrganizeError("");
+    setOrganizeState("loading");
+    await pollOrganization(note.id);
+  }
 
   function renderNoteRow(note: Note) {
     return (
@@ -950,6 +1143,65 @@ export function WorkspaceApp({
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
             {saveState === "Saved" ? "Saved automatically" : saveState}
           </span>
+          <div className="notification-center">
+            <button
+              className="notification-bell"
+              type="button"
+              aria-label={`AI notifications${notificationBadgeCount ? `, ${notificationBadgeCount} new or active` : ""}`}
+              aria-expanded={notificationsOpen}
+              onClick={toggleNotifications}
+            >
+              <UiIcon name="bell" />
+              {notificationBadgeCount > 0 && (
+                <span className="notification-badge">
+                  {notificationBadgeCount > 9 ? "9+" : notificationBadgeCount}
+                </span>
+              )}
+            </button>
+            {notificationsOpen && (
+              <div className="notification-popover" aria-label="AI notifications">
+                <header>
+                  <div>
+                    <p className="account-label">Background intelligence</p>
+                    <strong>Notifications</strong>
+                  </div>
+                  {activeAiJobCount > 0 && <span>{activeAiJobCount} working</span>}
+                </header>
+                {backgroundMessage && <p className="notification-message">{backgroundMessage}</p>}
+                <div className="notification-list">
+                  {aiJobs.length === 0 ? (
+                    <p className="notification-empty">No AI work yet.</p>
+                  ) : (
+                    aiJobs.map((job) => (
+                      <button
+                        className={`notification-item ${job.status}`}
+                        type="button"
+                        key={job.id}
+                        onClick={() => void openAiNotification(job)}
+                      >
+                        <span className="notification-status" aria-hidden="true" />
+                        <span>
+                          <strong>{job.noteTitle}</strong>
+                          <small>{job.bookName}</small>
+                          <em>
+                            {job.status === "completed"
+                              ? "Ready to review"
+                              : job.status === "applied"
+                                ? "Organization applied"
+                              : job.status === "failed"
+                                ? job.error || "Organization failed"
+                                : job.status === "processing"
+                                  ? "Organizing in background"
+                                  : "Waiting to organize"}
+                          </em>
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <details className="user-menu">
             <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
               {avatar}
@@ -1075,6 +1327,15 @@ export function WorkspaceApp({
                         <UiIcon name="book" />
                         <span><small>Book</small><strong>{book.name}</strong></span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => void organizeBook(book)}
+                        disabled={book.noteCount === 0 || organizingBookId !== null}
+                        title={book.noteCount === 0 ? "Add text to a note first" : "Organize every note in the background"}
+                      >
+                        <UiIcon name="sparkles" />
+                        {organizingBookId === book.id ? "Starting…" : "Organize notes"}
+                      </button>
                       <button type="button" onClick={() => beginBookRename(book)}>
                         <UiIcon name="edit" /> Rename
                       </button>
@@ -1235,8 +1496,8 @@ export function WorkspaceApp({
                   </p>
                   {organizeState === "loading" && (
                     <div className="organize-panel-state" role="status">
-                      <strong>Creating a clearer structure…</strong>
-                      <span>Preserving names, links, timestamps, and source details.</span>
+                      <strong>Organizing in the background…</strong>
+                      <span>You can close this panel and keep working. The bell will notify you when the proposal is ready.</span>
                     </div>
                   )}
                   {organizeState === "error" && (

@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-large-notes-v3
-/opt/epinote/current -> /opt/epinote/releases/20260816-large-notes-v3
+/opt/epinote/releases/20260816-background-ai-v4
+/opt/epinote/current -> /opt/epinote/releases/20260816-background-ai-v4
 ```
 
 ## Service layout
@@ -57,7 +57,8 @@ mode: 0600
 
 The file contains the MongoDB application URI, base URL, database name, cookie
 mode, verification mode, HMAC secret, `OPENROUTER_API_KEY`,
-`OPENROUTER_MODEL`, and `OPENROUTER_LARGE_NOTE_MODEL`. Never print or
+`OPENROUTER_MODEL`, `OPENROUTER_FAST_MODEL`, and
+`OPENROUTER_LARGE_NOTE_MODEL`. Never print or
 copy its values into Git, tickets, or chat. The OpenRouter key is loaded into the
 service environment and is used only after a user explicitly requests note
 organization.
@@ -103,7 +104,7 @@ Local code checks:
 - TypeScript strict check passed.
 - ESLint passed.
 - Production Next.js build passed locally and on the amd64 server.
-- Sixteen unit tests passed.
+- Twenty unit tests passed.
 - Argon2 hash/verify round-trip passed.
 - npm reported zero known vulnerabilities.
 
@@ -422,10 +423,11 @@ data were removed afterward.
 
 Saving notes already supports up to 1,000,000 characters. The former AI route
 rejected notes over 30,000 characters even though their content had saved
-correctly. Organization now measures the complete UTF-8 request, uses
-`openai/gpt-oss-120b` for standard requests, and routes requests over 30,000
-bytes to `deepseek/deepseek-v4-pro`. The large-note model and its limit remain
-explicit configuration rather than hidden provider fallback.
+correctly. Organization now measures the complete UTF-8 request. Standard
+requests try `openai/gpt-oss-120b`; requests from 30,000 through 130,000 bytes
+use `google/gemini-3.6-flash`; still larger supported requests use
+`deepseek/deepseek-v4-pro`. Failed standard and fast attempts move to the next
+configured tier.
 
 Standard and large requests have bounded 150-second and 300-second application
 timeouts. nginx permits 330 seconds for the upstream response. An output-limit
@@ -448,3 +450,41 @@ local and public health               200
 
 The isolated user, session, organization, workspace, book, note, and proposal
 were removed after verification. Existing Epignos tenant data was not modified.
+
+## 2026-08-16 background book organization and notification bell
+
+Note and book organization now create durable MongoDB jobs and return HTTP `202`
+without keeping the editor request open. The top-right bell polls the latest job
+per note and displays queued, processing, ready, applied, or failed status. Jobs
+run one at a time per workspace, survive page closure, and are retried only by an
+explicit user request or recovery poll. Book organization isolates failures and
+continues with the remaining notes.
+
+The real `Epignos / Ideologies` book was used for verification. Its five notes
+contained 1,511; 7,071; 34,660; 41,465; and 64,007 characters. The first pass
+exposed one malformed GPT-OSS response, one DeepSeek timeout, and three proposals
+that summarized away too much source material. No proposal was applied.
+
+Prompt version `organize-v4-source-preserving` now requires source-preserving
+organization. The server rejects a proposal unless its body retains at least 60
+percent of source character volume and every detected URL and timestamp. Three
+unsafe proposals were marked rejected and retried; valid earlier proposals were
+reused.
+
+Final live verification:
+
+```text
+book enqueue                           202, 5 notes, 0 skipped
+latest bell notifications              5 completed
+FASCISM coverage                       0.98, Gemini 3.6 Flash
+Marxism coverage                       1.01, Gemini 3.6 Flash
+SOCIALISM coverage                      0.69, GPT-OSS 120B
+Israel Creation coverage               1.00, DeepSeek V4 Pro fallback
+Nationalism coverage                    1.02, GPT-OSS 120B
+missing detected URLs/timestamps       0 / 0 across all five
+source revisions and hashes            unchanged across all five
+automatically applied proposals         0
+rejected unsafe proposals               3
+temporary verification sessions         removed
+local and public health                 200, database reachable
+```

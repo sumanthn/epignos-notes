@@ -124,6 +124,36 @@ async function createIndexes(): Promise<void> {
         name: "ai_proposals_status_created",
       },
     ]),
+    db.collection("aiJobs").createIndexes([
+      {
+        key: {
+          organizationId: 1,
+          workspaceId: 1,
+          noteId: 1,
+          type: 1,
+          sourceRevision: 1,
+          sourceHash: 1,
+          promptVersion: 1,
+          model: 1,
+        },
+        name: "ai_jobs_note_revision_unique",
+        unique: true,
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, updatedAt: -1 },
+        name: "ai_jobs_workspace_activity",
+      },
+      {
+        key: { status: 1, updatedAt: 1 },
+        name: "ai_jobs_status_updated",
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, status: 1 },
+        name: "ai_jobs_one_processing_per_workspace",
+        unique: true,
+        partialFilterExpression: { status: "processing" },
+      },
+    ]),
     db.collection("noteRevisions").createIndexes([
       {
         key: { noteId: 1, revision: 1 },

@@ -13,6 +13,7 @@ const schema = z.object({
   AUTH_HMAC_SECRET: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(20).optional(),
   OPENROUTER_MODEL: z.string().min(3).default("openai/gpt-oss-120b"),
+  OPENROUTER_FAST_MODEL: z.string().min(3).default("google/gemini-3.6-flash"),
   OPENROUTER_LARGE_NOTE_MODEL: z.string().min(3).default("deepseek/deepseek-v4-pro"),
 });
 

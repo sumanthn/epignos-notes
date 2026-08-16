@@ -100,6 +100,30 @@ a { color: inherit; }
 .workspace-account { justify-content: flex-end; }
 .save-chip { color: var(--success); font-size: 0.75rem; font-weight: 650; }
 .save-chip.failed { color: var(--danger); }
+.notification-center { position: relative; }
+.notification-bell { position: relative; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #637087; cursor: pointer; }
+.notification-bell:hover, .notification-bell[aria-expanded="true"] { border-color: #dbe2ee; background: #f4f6fa; color: var(--cobalt); }
+.notification-bell .ui-icon { width: 18px; height: 18px; }
+.notification-badge { position: absolute; top: -4px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border: 2px solid var(--surface); border-radius: 999px; background: var(--cobalt); color: #fff; font-size: 0.56rem; font-weight: 760; line-height: 1; }
+.notification-popover { position: absolute; z-index: 60; top: 44px; right: -44px; width: min(360px, calc(100vw - 24px)); overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 16px 45px rgba(23, 32, 51, 0.14); }
+.notification-popover > header { padding: 15px 16px 13px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); }
+.notification-popover > header strong { display: block; margin-top: 3px; font-size: 0.88rem; }
+.notification-popover > header > span { padding: 4px 7px; border-radius: 999px; background: #eef3ff; color: var(--cobalt); font-size: 0.62rem; font-weight: 700; white-space: nowrap; }
+.notification-message { margin: 0; padding: 10px 16px; border-bottom: 1px solid #e2e7f0; background: #f4f6fb; color: #59667d; font-size: 0.7rem; line-height: 1.45; }
+.notification-list { max-height: min(430px, calc(100vh - 130px)); overflow: auto; }
+.notification-empty { margin: 0; padding: 28px 16px; color: var(--muted); font-size: 0.74rem; text-align: center; }
+.notification-item { width: 100%; padding: 12px 15px; display: grid; grid-template-columns: 9px minmax(0, 1fr); align-items: start; gap: 10px; border: 0; border-bottom: 1px solid #eef0f4; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.notification-item:last-child { border-bottom: 0; }
+.notification-item:hover { background: #f7f8fb; }
+.notification-status { width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; background: #9aa3b2; }
+.notification-item.processing .notification-status, .notification-item.queued .notification-status { background: var(--cobalt); }
+.notification-item.completed .notification-status { background: var(--success); }
+.notification-item.applied .notification-status { background: #7d8798; }
+.notification-item.failed .notification-status { background: var(--danger); }
+.notification-item > span:last-child { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; }
+.notification-item strong { overflow: hidden; font-size: 0.76rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.notification-item small { color: #7a8598; font-size: 0.64rem; }
+.notification-item em { grid-column: 1 / -1; overflow: hidden; color: var(--muted); font-size: 0.66rem; font-style: normal; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .avatar-button { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--selected); color: var(--cobalt); font-size: 0.82rem; font-weight: 750; cursor: pointer; }
 .user-menu { position: relative; }
 .user-menu summary { list-style: none; }
@@ -247,6 +271,7 @@ a { color: inherit; }
   .workspace-topbar { grid-template-columns: 1fr auto; gap: 10px; padding: 0 14px; }
   .workspace-search { display: none; }
   .workspace-name, .topbar-divider, .save-chip { display: none; }
+  .notification-popover { position: fixed; top: 58px; right: 8px; left: 8px; width: auto; }
   .workspace-grid { grid-template-columns: 104px minmax(0, 1fr); }
   .notes-sidebar { padding: 14px 7px; }
   .sidebar-heading { padding-inline: 4px; }
