@@ -27,6 +27,7 @@ export interface WorkspacePayload {
 export async function ensurePersonalHierarchy(
   userId: ObjectId,
   displayName: string,
+  organizationName?: string,
 ): Promise<WorkspaceIdentity> {
   await ensureDbIndexes();
   const db = await getDb();
@@ -39,7 +40,7 @@ export async function ensurePersonalHierarchy(
       $setOnInsert: {
         _id: new ObjectId(),
         schemaVersion: 1,
-        name: `${displayName}'s organization`,
+        name: organizationName ?? `${displayName}'s organization`,
         slug: `personal-${suffix}`,
         status: "active",
         createdBy: userId,

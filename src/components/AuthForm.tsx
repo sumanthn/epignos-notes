@@ -18,7 +18,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
     const form = new FormData(event.currentTarget);
     const payload = {
-      ...(registering ? { displayName: form.get("displayName") } : {}),
+      ...(registering
+        ? {
+            displayName: form.get("displayName"),
+            organizationName: form.get("organizationName"),
+          }
+        : {}),
       email: form.get("email"),
       password: form.get("password"),
     };
@@ -48,18 +53,31 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   return (
     <form className="auth-form" onSubmit={submit} noValidate>
       {registering && (
-        <label>
-          Your name
-          <input
-            name="displayName"
-            type="text"
-            autoComplete="name"
-            minLength={2}
-            maxLength={80}
-            required
-            autoFocus
-          />
-        </label>
+        <>
+          <label>
+            Your name
+            <input
+              name="displayName"
+              type="text"
+              autoComplete="name"
+              minLength={2}
+              maxLength={80}
+              required
+              autoFocus
+            />
+          </label>
+          <label>
+            Organization name
+            <input
+              name="organizationName"
+              type="text"
+              autoComplete="organization"
+              minLength={2}
+              maxLength={100}
+              required
+            />
+          </label>
+        </>
       )}
       <label>
         Email

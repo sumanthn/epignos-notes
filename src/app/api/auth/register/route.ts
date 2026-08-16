@@ -11,6 +11,7 @@ import { ensurePersonalHierarchy } from "@/lib/workspace";
 
 const inputSchema = z.object({
   displayName: z.string().trim().min(2).max(80),
+  organizationName: z.string().trim().min(2).max(100),
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string(),
 });
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Enter a valid name, email, and password." }, { status: 400 });
     }
 
-    const { displayName, email, password } = parsed.data;
+    const { displayName, organizationName, email, password } = parsed.data;
     const passwordError = validatePassword(password, email);
     if (passwordError) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw error;
     }
 
-    await ensurePersonalHierarchy(userId, displayName);
+    await ensurePersonalHierarchy(userId, displayName, organizationName);
     const token = await createSession(
       { id: userId, email, displayName, authVersion: 1 },
       request,

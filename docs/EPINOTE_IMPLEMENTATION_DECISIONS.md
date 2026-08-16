@@ -124,3 +124,25 @@ assets into `.next/standalone` and fails if the required compiled static directo
 does not exist. Deployment verification must request the exact stylesheet and a
 JavaScript chunk referenced by the live HTML and require HTTP `200` with the
 correct content type.
+
+## 2026-08-16: person and organization names
+
+A person's display name is never used as the visible organization name. Initial
+registration asks separately for `Your name` and `Organization name`, then creates
+the registrant as owner of that isolated organization.
+
+Public registration does not silently add users to an existing organization.
+Additional Epignos members will join through the invitation workflow when it is
+implemented. This prevents an arbitrary public sign-up from gaining access to
+Epignos notes.
+
+## 2026-08-16: canonical development domain
+
+The canonical application URL is `https://epinote.epignos.dev`. GoDaddy DNS has
+an `A` record from `epinote` to the development server. nginx terminates a free
+Let's Encrypt certificate for the domain, and both HTTP and direct-IP requests
+redirect to the canonical hostname.
+
+`APP_BASE_URL` uses the canonical domain so origin validation, authentication
+links, and browser cookies agree on one origin. The application does not require
+a paid GoDaddy certificate or hosting product.

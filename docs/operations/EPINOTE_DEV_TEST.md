@@ -5,7 +5,8 @@ Last updated: 2026-08-16
 
 ## Access
 
-- Application: <https://169.58.186.94>
+- Application: <https://epinote.epignos.dev>
+- Direct-IP requests redirect to the canonical domain.
 - SSH: use the local alias `epignos-dev-test`.
 - Do not commit the alias's resolved key path or database credentials.
 
@@ -24,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-static-assets-fix
-/opt/epinote/current -> /opt/epinote/releases/20260816-static-assets-fix
+/opt/epinote/releases/20260816-org-registration
+/opt/epinote/current -> /opt/epinote/releases/20260816-org-registration
 ```
 
 ## Service layout
@@ -70,6 +71,17 @@ Git, tickets, or chat.
 - Pre-hook stops nginx for the standalone HTTP challenge.
 - Post-hook always starts nginx again.
 - A simulated renewal succeeded on 2026-08-16.
+
+Canonical domain certificate:
+
+```text
+name: epinote.epignos.dev
+issuer: Let's Encrypt
+key: ECDSA
+current expiry: 2026-11-14 UTC
+renewal: snap.certbot.renew.timer with the same tested hooks
+simulated renewal: passed 2026-08-16
+```
 
 Certificate files remain root-protected under:
 
@@ -123,17 +135,16 @@ Path=/
 ```bash
 ssh epignos-dev-test 'systemctl is-active epinote nginx mongod'
 ssh epignos-dev-test 'curl --fail --silent http://127.0.0.1:3000/api/health'
-curl --fail --silent https://169.58.186.94/api/health
+curl --fail --silent https://epinote.epignos.dev/api/health
 ssh epignos-dev-test 'journalctl -u epinote -n 100 --no-pager'
 ssh epignos-dev-test 'sudo certbot certificates'
 ```
 
 ## Rollback
 
-The previous `20260816-vertical-slice-1` release is retained as the first rollback
-point and includes the live static-asset hotfix. Rollback selects that release,
-restarts `epinote`, and verifies the local health and compiled stylesheet
-endpoints.
+The `20260816-static-assets-fix` and `20260816-vertical-slice-1` releases are
+retained as rollback points. Rollback selects a known earlier release, restarts
+`epinote`, and verifies the local health and compiled stylesheet endpoints.
 
 ## Known development limitations
 
@@ -162,3 +173,10 @@ compiled stylesheet                  200 text/css
 compiled browser JavaScript          200 application/javascript
 theme token #315cf5                  present in compiled CSS
 ```
+
+## 2026-08-16 initial organization correction
+
+The first registered user `Sumanth` is the owner of the `Epignos` organization.
+The original generated display name `Sumanth's organization` was corrected in
+MongoDB. Registration now collects person and organization names separately;
+future public registrations remain isolated from the existing Epignos tenant.

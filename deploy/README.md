@@ -3,6 +3,8 @@
 The application is deployed as a versioned release under `/opt/epinote/releases`
 with `/opt/epinote/current` pointing to the active release.
 
+Canonical development URL: `https://epinote.epignos.dev`.
+
 Runtime shape:
 
 ```text
@@ -66,5 +68,5 @@ by Certbot's systemd timer. The committed pre/post hooks stop nginx for the
 standalone HTTP challenge and always start it again afterward; nginx reads the
 renewed certificate on startup.
 
-A normal domain certificate should replace this as soon as an EpiNote domain is
-available.
+The canonical domain uses a standard free Let's Encrypt certificate. The IP
+certificate remains only so direct-IP HTTPS can redirect safely to the domain.

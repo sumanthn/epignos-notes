@@ -121,6 +121,7 @@ Registration fields:
 
 ```text
 display name
+organization name
 email
 password
 terms acceptance when required
