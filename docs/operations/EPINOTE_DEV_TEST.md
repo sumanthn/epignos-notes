@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-summary-cards-v6
-/opt/epinote/current -> /opt/epinote/releases/20260816-summary-cards-v6
+/opt/epinote/releases/20260816-summary-cards-v7
+/opt/epinote/current -> /opt/epinote/releases/20260816-summary-cards-v7
 ```
 
 ## Service layout

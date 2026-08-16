@@ -375,3 +375,8 @@ source note's ID, revision, and content hash. Editing or renaming source materia
 makes the prior deck visibly stale instead of silently presenting it as current.
 Cards link back to their source notes, carry an AI study-aid warning, and never
 modify note content.
+
+Summary Cards also render as the first, highlighted child of every expanded
+book, above ordinary notes. The row is a persistent collection entry rather
+than a hidden menu action and exposes ready, queued, processing, failed, and
+empty-book states. The book menu and editor toolbar remain secondary shortcuts.

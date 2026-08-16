@@ -1139,6 +1139,24 @@ export function WorkspaceApp({
     await pollOrganization(note.id);
   }
 
+  function bookCardTreeState(bookId: string): {
+    label: string;
+    state: "idle" | "queued" | "processing" | "ready" | "failed";
+  } {
+    if (cardsBookId === bookId && cardDeck) {
+      return { label: `${cardDeck.cards.length} cards`, state: "ready" };
+    }
+    const job = aiJobs.find(
+      (candidate) => candidate.type === "summarize-book-cards" && candidate.bookId === bookId,
+    );
+    if (!job) return { label: "Quick reference", state: "idle" };
+    if (job.status === "completed") return { label: "Ready", state: "ready" };
+    if (job.status === "processing") return { label: "Generating…", state: "processing" };
+    if (job.status === "queued") return { label: "Waiting…", state: "queued" };
+    if (job.status === "failed") return { label: "Try again", state: "failed" };
+    return { label: "Ready", state: "ready" };
+  }
+
   function renderNoteRow(note: Note) {
     return (
       <div
@@ -1525,6 +1543,20 @@ export function WorkspaceApp({
                   )}
                   {book.id === activeBookId && !query.trim() && (
                     <div className="book-children" aria-label={`${book.name} notes`}>
+                      <button
+                        className={`book-summary-row ${cardsPanelOpen && cardsBookId === book.id ? "selected" : ""} ${bookCardTreeState(book.id).state}`}
+                        type="button"
+                        onClick={() => void openBookCards(book)}
+                        disabled={book.noteCount === 0}
+                        title={book.noteCount === 0 ? "Add notes to create a summary" : `Open ${book.name} summary cards`}
+                      >
+                        <span className="book-summary-icon"><UiIcon name="cards" /></span>
+                        <span className="book-summary-copy">
+                          <strong>Summary Cards</strong>
+                          <small>{book.noteCount === 0 ? "Add notes first" : bookCardTreeState(book.id).label}</small>
+                        </span>
+                        <span className="book-summary-ai">AI</span>
+                      </button>
                       {filteredNotes.map(renderNoteRow)}
                       {filteredNotes.length === 0 && (
                         <p className="empty-tree-list">No notes here yet.</p>
