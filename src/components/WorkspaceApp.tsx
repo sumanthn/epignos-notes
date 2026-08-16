@@ -738,6 +738,102 @@ export function WorkspaceApp({
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = books.find((book) => book.id === activeBookId) ?? null;
 
+  function renderNoteRow(note: Note) {
+    return (
+      <div
+        className={`note-row ${note.id === selectedId ? "selected" : ""} ${draggedNoteId === note.id ? "dragging" : ""} ${movingNoteId === note.id ? "moving" : ""}`}
+        key={note.id}
+        draggable={renamingNoteId !== note.id && movingNoteId !== note.id}
+        aria-grabbed={draggedNoteId === note.id}
+        onDragStart={(event) => {
+          if (renamingNoteId === note.id || movingNoteId === note.id) {
+            event.preventDefault();
+            return;
+          }
+          setNoteActionId(null);
+          setDraggedNoteId(note.id);
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", note.id);
+        }}
+        onDragEnd={() => {
+          setDraggedNoteId(null);
+          setDropBookId(null);
+        }}
+      >
+        {renamingNoteId === note.id ? (
+          <form className="note-inline-rename" onSubmit={(event) => void renameNote(event, note.id)}>
+            <input
+              value={noteTitleDraft}
+              onChange={(event) => setNoteTitleDraft(event.target.value)}
+              onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setRenamingNoteId(null);
+                }
+              }}
+              aria-label="Note name"
+              maxLength={200}
+              autoFocus
+              required
+            />
+          </form>
+        ) : (
+          <button
+            className="note-row-main"
+            type="button"
+            onClick={() => void chooseNote(note.id)}
+            onDoubleClick={() => void beginNoteRename(note)}
+            title="Double-click to rename"
+          >
+            <span className="note-row-title">{note.title || "Untitled note"}</span>
+            <span className="note-row-date">
+              {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
+                new Date(note.updatedAt),
+              )}
+            </span>
+          </button>
+        )}
+        <button
+          className="note-more-button"
+          type="button"
+          aria-label={`Actions for ${note.title || "Untitled note"}`}
+          aria-expanded={noteActionId === note.id}
+          onClick={() => setNoteActionId((current) => (current === note.id ? null : note.id))}
+          disabled={deletingNoteId === note.id || movingNoteId === note.id}
+        >
+          {deletingNoteId === note.id || movingNoteId === note.id ? "…" : "•••"}
+        </button>
+        {noteActionId === note.id && (
+          <div className="note-actions-menu">
+            <button type="button" onClick={() => void beginNoteRename(note)}>
+              Rename
+            </button>
+            <label className="note-move-control">
+              <span>Move to</span>
+              <select
+                value=""
+                aria-label={`Move ${note.title || "Untitled note"} to another book`}
+                onChange={(event) => {
+                  const targetBookId = event.target.value;
+                  if (targetBookId) void moveNote(note.id, targetBookId);
+                }}
+              >
+                <option value="" disabled>Choose a book…</option>
+                {books
+                  .filter((book) => book.id !== note.bookId)
+                  .map((book) => <option value={book.id} key={book.id}>{book.name}</option>)}
+              </select>
+            </label>
+            <button className="danger" type="button" onClick={() => void deleteNote(note)}>
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <main className="workspace-shell">
       <header className="workspace-topbar">
@@ -924,6 +1020,22 @@ export function WorkspaceApp({
                       {book.noteCount > 0 && <span>Move or delete its notes first.</span>}
                     </div>
                   )}
+                  {book.id === activeBookId && !query.trim() && (
+                    <div className="book-children" aria-label={`${book.name} notes`}>
+                      {filteredNotes.map(renderNoteRow)}
+                      {filteredNotes.length === 0 && (
+                        <p className="empty-tree-list">No notes here yet.</p>
+                      )}
+                      <button
+                        className="new-note-tree-button"
+                        type="button"
+                        onClick={createNote}
+                        disabled={creating}
+                      >
+                        <span>+</span>{creating ? "Creating…" : "New note"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}
@@ -963,112 +1075,12 @@ export function WorkspaceApp({
                 {bookError && <span role="alert">{bookError}</span>}
               </form>
             )}
-          </div>
-          <button className="new-note-button" type="button" onClick={createNote} disabled={creating || !activeBookId}>
-            <span>+</span>{creating ? "Creating…" : "New note"}
-          </button>
-          <div className="note-list" aria-label="Notes">
-            {filteredNotes.map((note) => (
-              <div
-                className={`note-row ${note.id === selectedId ? "selected" : ""} ${draggedNoteId === note.id ? "dragging" : ""} ${movingNoteId === note.id ? "moving" : ""}`}
-                key={note.id}
-                draggable={renamingNoteId !== note.id && movingNoteId !== note.id}
-                aria-grabbed={draggedNoteId === note.id}
-                onDragStart={(event) => {
-                  if (renamingNoteId === note.id || movingNoteId === note.id) {
-                    event.preventDefault();
-                    return;
-                  }
-                  setNoteActionId(null);
-                  setDraggedNoteId(note.id);
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", note.id);
-                }}
-                onDragEnd={() => {
-                  setDraggedNoteId(null);
-                  setDropBookId(null);
-                }}
-              >
-                {renamingNoteId === note.id ? (
-                  <form className="note-inline-rename" onSubmit={(event) => void renameNote(event, note.id)}>
-                    <input
-                      value={noteTitleDraft}
-                      onChange={(event) => setNoteTitleDraft(event.target.value)}
-                      onBlur={(event) => event.currentTarget.form?.requestSubmit()}
-                      onKeyDown={(event) => {
-                        if (event.key === "Escape") {
-                          event.preventDefault();
-                          setRenamingNoteId(null);
-                        }
-                      }}
-                      aria-label="Note name"
-                      maxLength={200}
-                      autoFocus
-                      required
-                    />
-                  </form>
-                ) : (
-                  <button
-                    className="note-row-main"
-                    type="button"
-                    onClick={() => void chooseNote(note.id)}
-                    onDoubleClick={() => void beginNoteRename(note)}
-                    title="Double-click to rename"
-                  >
-                    <span className="note-row-title">{note.title || "Untitled note"}</span>
-                    <span className="note-row-date">
-                      {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-                        new Date(note.updatedAt),
-                      )}
-                    </span>
-                  </button>
-                )}
-                <button
-                  className="note-more-button"
-                  type="button"
-                  aria-label={`Actions for ${note.title || "Untitled note"}`}
-                  aria-expanded={noteActionId === note.id}
-                  onClick={() => setNoteActionId((current) => (current === note.id ? null : note.id))}
-                  disabled={deletingNoteId === note.id || movingNoteId === note.id}
-                >
-                  {deletingNoteId === note.id || movingNoteId === note.id ? "…" : "•••"}
-                </button>
-                {noteActionId === note.id && (
-                  <div className="note-actions-menu">
-                    <button type="button" onClick={() => void beginNoteRename(note)}>
-                      Rename
-                    </button>
-                    <label className="note-move-control">
-                      <span>Move to</span>
-                      <select
-                        value=""
-                        aria-label={`Move ${note.title || "Untitled note"} to another book`}
-                        onChange={(event) => {
-                          const targetBookId = event.target.value;
-                          if (targetBookId) void moveNote(note.id, targetBookId);
-                        }}
-                      >
-                        <option value="" disabled>Choose a book…</option>
-                        {books
-                          .filter((book) => book.id !== note.bookId)
-                          .map((book) => <option value={book.id} key={book.id}>{book.name}</option>)}
-                      </select>
-                    </label>
-                    <button className="danger" type="button" onClick={() => void deleteNote(note)}>
-                      Delete
-                    </button>
-                  </div>
-                )}
+            {query.trim() && (
+              <div className="search-results" aria-label="Search results">
+                <p>{filteredNotes.length} {filteredNotes.length === 1 ? "result" : "results"}</p>
+                {filteredNotes.map(renderNoteRow)}
+                {filteredNotes.length === 0 && <p className="empty-tree-list">No notes match.</p>}
               </div>
-            ))}
-            {filteredNotes.length === 0 && (
-              <p className="empty-list">
-                {query.trim()
-                  ? "No notes match."
-                  : notes.length
-                    ? "No notes in this book yet."
-                    : "Your first note starts here."}
-              </p>
             )}
           </div>
         </aside>

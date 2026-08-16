@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-note-drag-book-delete
-/opt/epinote/current -> /opt/epinote/releases/20260816-note-drag-book-delete
+/opt/epinote/releases/20260816-library-tree
+/opt/epinote/current -> /opt/epinote/releases/20260816-library-tree
 ```
 
 ## Service layout
@@ -391,3 +391,16 @@ MongoDB inspection confirmed the moved note retained its exact title and plain
 text, remained active, kept its AI metadata, and referenced the destination
 book at revision 4. All temporary users, sessions, organizations, workspaces,
 books, and notes were removed afterward; the Epignos tenant was not modified.
+
+## 2026-08-16 Library tree navigation
+
+The selected book now expands in the Library and renders its notes as indented
+children. A compact `New note` control is the final child in that branch. Other
+books remain collapsed with note counts visible, while workspace search uses a
+separate cross-book result list.
+
+Live verification created and saved a note in an isolated tenant, confirmed the
+rendered order `Quick Capture -> Nested tree note -> New note`, and confirmed the
+deployed stylesheet contained the tree rail and nested creation control. The
+workspace and public health endpoint returned `200`. The temporary tenant and
+all associated data were removed afterward.

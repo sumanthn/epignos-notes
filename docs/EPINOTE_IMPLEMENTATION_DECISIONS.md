@@ -282,3 +282,17 @@ archives rather than physically removes the book. The server performs its own
 active-note check and returns a conflict if the book is not empty. Quick Capture
 cannot be renamed or deleted because every workspace needs a permanent capture
 destination.
+
+## 2026-08-16: Library tree navigation
+
+The sidebar renders the hierarchy as a real tree instead of separate book and
+note lists. The selected book expands in place, its notes appear indented below
+it with a quiet connecting rail, and a compact `New note` action sits at the end
+of that branch. This makes the destination of a new note obvious without adding
+a second creation control to the workspace top bar. Other books remain collapsed
+with their authoritative note counts visible.
+
+Workspace search temporarily replaces the expanded branch with a clearly
+labeled cross-book result list. Selecting a result still opens its containing
+book. Existing drag-and-drop movement and note action menus remain available in
+both the normal tree and search results.
