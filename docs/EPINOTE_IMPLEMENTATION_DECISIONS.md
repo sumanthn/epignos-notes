@@ -112,3 +112,15 @@ References:
 - Rich-text editor library, only after the text workflow is reliable.
 - Attachment ingestion and image storage UI.
 - Narrow AI proposal workflow after canonical notes are proven.
+
+## 2026-08-16: standalone static assets
+
+Next.js standalone output does not automatically place `.next/static` or the
+optional `public` directory beside the standalone server. The initial deployment
+therefore rendered HTML while its CSS and browser JavaScript returned `404`.
+
+`npm run build` now runs `scripts/prepare-standalone.mjs`, which copies those
+assets into `.next/standalone` and fails if the required compiled static directory
+does not exist. Deployment verification must request the exact stylesheet and a
+JavaScript chunk referenced by the live HTML and require HTTP `200` with the
+correct content type.

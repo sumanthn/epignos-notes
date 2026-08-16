@@ -34,7 +34,9 @@ instance until email delivery exists.
 
 1. Create a new explicit directory under `/opt/epinote/releases`.
 2. Copy repository files without `.git`, `.env`, build output, or dependencies.
-3. Run `npm ci` and `npm run build` as `epignos` inside that release.
+3. Run `npm ci` and `npm run build` as `epignos` inside that release. The build
+   copies `.next/static` and `public` into the standalone package; do not start a
+   release whose `/_next/static/` asset check returns anything other than `200`.
 4. Point `/opt/epinote/current` to the new release.
 5. Restart `epinote` and require a successful local health check.
 6. Keep the previous release for rollback.
@@ -49,6 +51,7 @@ release.
 systemctl is-active epinote nginx mongod
 curl --fail --silent http://127.0.0.1:3000/api/health
 curl --fail --silent https://PUBLIC_IP/api/health
+curl --fail --silent https://PUBLIC_IP/_next/static/COMPILED_ASSET
 ss -ltnp
 ```
 

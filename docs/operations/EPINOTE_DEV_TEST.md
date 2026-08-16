@@ -24,8 +24,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-vertical-slice-1
-/opt/epinote/current -> /opt/epinote/releases/20260816-vertical-slice-1
+/opt/epinote/releases/20260816-static-assets-fix
+/opt/epinote/current -> /opt/epinote/releases/20260816-static-assets-fix
 ```
 
 ## Service layout
@@ -130,10 +130,10 @@ ssh epignos-dev-test 'sudo certbot certificates'
 
 ## Rollback
 
-No older application release exists yet. Future releases must retain this first
-release and change `/opt/epinote/current` only after their server build passes.
-Rollback selects a known earlier release, restarts `epinote`, and verifies the
-local health endpoint.
+The previous `20260816-vertical-slice-1` release is retained as the first rollback
+point and includes the live static-asset hotfix. Rollback selects that release,
+restarts `epinote`, and verifies the local health and compiled stylesheet
+endpoints.
 
 ## Known development limitations
 
@@ -147,3 +147,18 @@ local health endpoint.
 - `Review` is intentionally disabled until a narrow, evidence-preserving AI
   workflow exists.
 - A domain should replace raw-IP access before a production launch.
+
+## 2026-08-16 static-asset correction
+
+The first standalone start omitted `.next/static`, causing the live page to show
+unstyled HTML and return `404` for its CSS and browser JavaScript. The live
+release was corrected immediately and the build was changed to package these
+assets automatically.
+
+Post-fix verification required:
+
+```text
+compiled stylesheet                  200 text/css
+compiled browser JavaScript          200 application/javascript
+theme token #315cf5                  present in compiled CSS
+```
