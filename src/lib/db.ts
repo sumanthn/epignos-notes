@@ -107,5 +107,33 @@ async function createIndexes(): Promise<void> {
         name: "notes_workspace_navigation",
       },
     ]),
+    db.collection("aiProposals").createIndexes([
+      {
+        key: {
+          organizationId: 1,
+          workspaceId: 1,
+          noteId: 1,
+          type: 1,
+          status: 1,
+          sourceRevision: 1,
+        },
+        name: "ai_proposals_note_revision",
+      },
+      {
+        key: { status: 1, createdAt: -1 },
+        name: "ai_proposals_status_created",
+      },
+    ]),
+    db.collection("noteRevisions").createIndexes([
+      {
+        key: { noteId: 1, revision: 1 },
+        name: "note_revisions_note_revision_unique",
+        unique: true,
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, noteId: 1, createdAt: -1 },
+        name: "note_revisions_navigation",
+      },
+    ]),
   ]);
 }

@@ -193,6 +193,22 @@ search still searches all active notes and switches to a result's book when the
 result is opened. Book and note creation validate that the selected book is
 active and belongs to the signed-in user's organization and workspace.
 
+## 2026-08-16: AI organization panel
+
+`Organize` is EpiNote's first narrow AI workflow. It opens a panel inside the
+note editor and sends only the currently saved title and plain text to OpenRouter
+after an explicit user click. The model must return a strict JSON object with a
+proposed title and complete Markdown body. The prompt forbids adding facts or
+dropping names, links, timestamps, claims, or source details.
+
+The proposal is stored against the exact note revision and content hash. The
+original remains canonical until the user selects `Apply organization`; the
+server then revalidates tenant scope, revision, and hash before atomically
+replacing the note content. A stale proposal returns `409`. Repeated requests for
+the same revision reuse the stored proposal rather than spending another model
+request. The initial configurable model is `openai/gpt-oss-20b` through
+OpenRouter structured outputs.
+
 ## 2026-08-16: explicit autosave feedback
 
 Notes autosave about 900 milliseconds after the user stops typing. A disabled

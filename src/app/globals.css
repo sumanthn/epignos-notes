@@ -149,7 +149,7 @@ a { color: inherit; }
 .note-inline-rename { min-width: 0; padding-left: 7px; }
 .note-inline-rename input { width: 100%; height: 36px; padding: 0 8px; border: 1px solid var(--cobalt); border-radius: 7px; outline: 3px solid rgba(49, 92, 245, 0.12); background: var(--surface); color: var(--ink); font-size: 0.8rem; font-weight: 630; }
 .empty-list { margin: 0; padding: 28px 10px; color: #77839a; font-size: 0.76rem; line-height: 1.5; text-align: center; }
-.note-panel { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--surface); }
+.note-panel { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--surface); }
 .note-header { padding: 30px clamp(32px, 7vw, 105px) 20px; }
 .note-path { margin: 0 0 12px; color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .note-title-input { width: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 500; letter-spacing: -0.04em; }
@@ -166,6 +166,24 @@ a { color: inherit; }
 .note-footer-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
 .workspace-error { max-width: 410px; overflow: hidden; color: var(--danger); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
 .autosave-confirmation { min-height: 38px; display: inline-flex; align-items: center; padding: 0 4px; color: var(--success); font-size: 0.78rem; font-weight: 680; white-space: nowrap; }
+.organize-button:not(:disabled) { border-color: #b9c8ee; color: #294ea8; }
+.organize-panel { position: absolute; z-index: 40; top: 0; right: 0; bottom: 0; width: min(460px, 100%); display: flex; flex-direction: column; border-left: 1px solid #dce2ed; background: #fafbfe; box-shadow: -18px 0 55px rgba(23, 32, 51, 0.12); }
+.organize-panel-header { min-height: 102px; padding: 24px 24px 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.organize-panel-header .eyebrow { margin-bottom: 7px; font-size: 0.62rem; }
+.organize-panel-header h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.65rem; font-weight: 500; letter-spacing: -0.03em; }
+.organize-panel-header > button { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 1.35rem; cursor: pointer; }
+.organize-panel-header > button:hover { background: #edf1f8; color: var(--ink); }
+.organize-safety { margin: 0; padding: 14px 24px; border-bottom: 1px solid var(--border); background: #f2f5fc; color: #5f6b80; font-size: 0.72rem; line-height: 1.5; }
+.organize-panel-state { margin: auto; max-width: 330px; padding: 32px; display: flex; flex-direction: column; gap: 10px; color: var(--muted); text-align: center; }
+.organize-panel-state strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; font-weight: 500; }
+.organize-panel-state span { font-size: 0.78rem; line-height: 1.55; }
+.organize-panel-state .button { align-self: center; margin-top: 6px; }
+.organize-panel-error strong { color: var(--danger); }
+.organize-proposal { min-height: 0; padding: 22px 24px 0; display: flex; flex: 1; flex-direction: column; overflow: hidden; }
+.organize-proposal-label { margin: 0 0 6px; color: var(--muted); font-size: 0.63rem; font-weight: 720; letter-spacing: 0.08em; text-transform: uppercase; }
+.organize-proposal h3 { margin: 0 0 22px; font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; font-weight: 500; }
+.organize-proposal pre { min-height: 0; margin: 0; flex: 1; overflow: auto; color: #303b4e; font-family: Georgia, "Times New Roman", serif; font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.organize-proposal > footer { margin: 18px -24px 0; padding: 14px 24px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); background: var(--surface); }
 .empty-editor { grid-row: 1 / -1; place-self: center; max-width: 520px; padding: 40px; text-align: center; }
 .empty-editor h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 2.6rem; font-weight: 500; }
 .empty-editor > p:not(.eyebrow, .form-error) { margin: 16px 0 26px; color: var(--muted); line-height: 1.6; }
@@ -204,5 +222,6 @@ a { color: inherit; }
   .format-bar { padding: 0 15px; }
   .editor-area { padding: 24px 20px; }
   .note-footer { padding-inline: 12px; }
-  .note-footer > .button:first-child, .workspace-error { display: none; }
+  .workspace-error { display: none; }
+  .organize-panel { width: 100%; }
 }

@@ -618,7 +618,7 @@ schemaVersion
 organizationId
 workspaceId
 noteId
-type: title | summary | book | concepts | transform
+type: title | summary | book | concepts | transform | organize
 value
 status: proposed | accepted | rejected | stale | failed
 sourceRevision

@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-library-quick-capture
-/opt/epinote/current -> /opt/epinote/releases/20260816-library-quick-capture
+/opt/epinote/releases/20260816-organize-panel-v2
+/opt/epinote/current -> /opt/epinote/releases/20260816-organize-panel-v2
 ```
 
 ## Service layout
@@ -56,9 +56,11 @@ mode: 0600
 ```
 
 The file contains the MongoDB application URI, base URL, database name, cookie
-mode, verification mode, HMAC secret, and `OPENROUTER_API_KEY`. Never print or
+mode, verification mode, HMAC secret, `OPENROUTER_API_KEY`, and
+`OPENROUTER_MODEL`. Never print or
 copy its values into Git, tickets, or chat. The OpenRouter key is loaded into the
-service environment but is not used until a narrow AI workflow is implemented.
+service environment and is used only after a user explicitly requests note
+organization.
 
 The local source key remains outside the repository at
 `/Users/sumanth/epignos-notes/openrouter-epignos-test.txt` with mode `0600`.
@@ -160,8 +162,9 @@ retained as rollback points. Rollback selects a known earlier release, restarts
   acceptance remain to be implemented.
 - The first editor is text-based canonical paragraph blocks; attachments and a
   richer block editor are not present yet.
-- `Review` is intentionally disabled until a narrow, evidence-preserving AI
-  workflow exists.
+- The first AI workflow is limited to a user-requested organization proposal;
+  broader summaries, concepts, automatic processing, and autonomous actions are
+  intentionally not implemented.
 - Production readiness still requires the remaining authentication controls and
   a separate production environment; the canonical domain and HTTPS are active.
 
@@ -250,3 +253,29 @@ The sidebar section is `Library` and the permanent system book is displayed as
 `systemKey: "unsorted"`, updated its visible name and normalized name, and left
 all three linked note relationships unchanged. The stable system key, book ID,
 positions, and note content were not changed.
+
+## 2026-08-16 AI organize panel
+
+The note footer exposes `Organize` when the current note has saved text. It opens
+an in-editor panel that shows a strict structured-output proposal and keeps the
+original unchanged until `Apply organization` is selected. The configured model
+is `openai/gpt-oss-20b`; a direct server probe returned valid schema-constrained
+JSON without printing generated content.
+
+Live workflow verification used a temporary isolated tenant and confirmed:
+
+```text
+saved source revision                 2
+organization proposal                 200
+URL, name, timestamps preserved       yes
+same-revision proposal reused         yes
+original unchanged before apply       yes
+cross-organization request            404
+apply organization                    200, revision 3
+proposal status after apply           accepted
+before-ai-apply revision snapshot      present
+accepted proposal linked on note       yes
+```
+
+All temporary users, tenant data, proposals, and revision snapshots were removed
+after verification.

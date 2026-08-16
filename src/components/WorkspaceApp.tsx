@@ -7,6 +7,13 @@ import type { WorkspacePayload } from "@/lib/workspace";
 
 type Note = WorkspacePayload["notes"][number];
 type SaveState = "Saved" | "Unsaved changes" | "Saving…" | "Save failed";
+type OrganizeState = "idle" | "loading" | "ready" | "applying" | "error";
+type OrganizeProposal = {
+  id: string;
+  sourceRevision: number;
+  title: string;
+  body: string;
+};
 
 export function WorkspaceApp({
   initialWorkspace,
@@ -43,6 +50,10 @@ export function WorkspaceApp({
   const [bookNameDraft, setBookNameDraft] = useState("");
   const [bookSaving, setBookSaving] = useState(false);
   const [bookError, setBookError] = useState("");
+  const [organizePanelOpen, setOrganizePanelOpen] = useState(false);
+  const [organizeState, setOrganizeState] = useState<OrganizeState>("idle");
+  const [organizeProposal, setOrganizeProposal] = useState<OrganizeProposal | null>(null);
+  const [organizeError, setOrganizeError] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -172,6 +183,7 @@ export function WorkspaceApp({
     setDirty(false);
     setError("");
     setPreview(false);
+    closeOrganizePanel();
   }
 
   async function createNote() {
@@ -197,6 +209,7 @@ export function WorkspaceApp({
       setDirty(false);
       setSaveState("Saved");
       setPreview(false);
+      closeOrganizePanel();
       window.setTimeout(() => editorRef.current?.focus(), 0);
     } catch {
       setError("EpiNote is unreachable. Try again when your connection returns.");
@@ -214,6 +227,7 @@ export function WorkspaceApp({
     setError("");
     setPreview(false);
     setQuery("");
+    closeOrganizePanel();
   }
 
   async function createBook(event: React.FormEvent<HTMLFormElement>) {
@@ -411,11 +425,90 @@ export function WorkspaceApp({
         setDirty(false);
         setSaveState("Saved");
         setPreview(false);
+        closeOrganizePanel();
       }
     } catch {
       setError("EpiNote is unreachable. The note was not deleted.");
     } finally {
       setDeletingNoteId(null);
+    }
+  }
+
+  function closeOrganizePanel() {
+    setOrganizePanelOpen(false);
+    setOrganizeState("idle");
+    setOrganizeProposal(null);
+    setOrganizeError("");
+  }
+
+  async function organizeNote() {
+    if (!selected || organizeState === "loading" || organizeState === "applying") return;
+    if (!selected.body.trim()) {
+      setError("Add some text before organizing this note.");
+      return;
+    }
+    if (dirty && !(await saveNote(selected))) return;
+
+    setOrganizePanelOpen(true);
+    setOrganizeState("loading");
+    setOrganizeProposal(null);
+    setOrganizeError("");
+    try {
+      const response = await fetch(`/api/notes/${selected.id}/organize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        proposal?: OrganizeProposal;
+      };
+      if (!response.ok || !data.proposal) {
+        setOrganizeError(data.error || "Unable to organize this note.");
+        setOrganizeState("error");
+        return;
+      }
+      setOrganizeProposal(data.proposal);
+      setOrganizeState("ready");
+    } catch {
+      setOrganizeError("EpiNote cannot reach the AI service right now.");
+      setOrganizeState("error");
+    }
+  }
+
+  async function applyOrganization() {
+    if (!selected || !organizeProposal || organizeState === "applying") return;
+    setOrganizeState("applying");
+    setOrganizeError("");
+    try {
+      const response = await fetch(`/api/notes/${selected.id}/organize`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId: organizeProposal.id,
+          expectedRevision: organizeProposal.sourceRevision,
+        }),
+      });
+      const data = (await response.json()) as { error?: string; note?: Note };
+      if (!response.ok || !data.note) {
+        setOrganizeError(data.error || "Unable to apply this organization.");
+        setOrganizeState("error");
+        return;
+      }
+
+      const nextNotes = notesRef.current.map((note) =>
+        note.id === data.note!.id ? { ...note, ...data.note! } : note,
+      );
+      notesRef.current = nextNotes;
+      setNotes(nextNotes);
+      window.localStorage.removeItem(`epinote:draft:${data.note.id}`);
+      setDirty(false);
+      setSaveState("Saved");
+      setError("");
+      closeOrganizePanel();
+    } catch {
+      setOrganizeError("EpiNote cannot apply this suggestion right now.");
+      setOrganizeState("error");
     }
   }
 
@@ -670,8 +763,14 @@ export function WorkspaceApp({
                 )}
               </div>
               <footer className="note-footer">
-                <button className="button button-secondary button-small" type="button" title="AI review comes after reliable notes" disabled>
-                  Review
+                <button
+                  className="button button-secondary button-small organize-button"
+                  type="button"
+                  title={selected.body.trim() ? "Organize this note with AI" : "Add text before organizing"}
+                  onClick={() => void organizeNote()}
+                  disabled={!selected.body.trim() || organizeState === "loading" || organizeState === "applying"}
+                >
+                  Organize
                 </button>
                 <div className="note-footer-right">
                   {error && <span className="workspace-error" role="alert">{error}</span>}
@@ -690,6 +789,51 @@ export function WorkspaceApp({
                   )}
                 </div>
               </footer>
+              {organizePanelOpen && (
+                <aside className="organize-panel" aria-label="Organize note">
+                  <header className="organize-panel-header">
+                    <div>
+                      <p className="eyebrow">AI suggestion</p>
+                      <h2>Organize note</h2>
+                    </div>
+                    <button type="button" onClick={closeOrganizePanel} aria-label="Close organize panel">×</button>
+                  </header>
+                  <p className="organize-safety">
+                    Your saved text is sent to OpenRouter. The original stays unchanged until you apply the suggestion.
+                  </p>
+                  {organizeState === "loading" && (
+                    <div className="organize-panel-state" role="status">
+                      <strong>Creating a clearer structure…</strong>
+                      <span>Preserving names, links, timestamps, and source details.</span>
+                    </div>
+                  )}
+                  {organizeState === "error" && (
+                    <div className="organize-panel-state organize-panel-error" role="alert">
+                      <strong>Organization failed</strong>
+                      <span>{organizeError}</span>
+                      <button className="button button-secondary button-small" type="button" onClick={() => void organizeNote()}>
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                  {organizeProposal && (organizeState === "ready" || organizeState === "applying") && (
+                    <div className="organize-proposal">
+                      <p className="organize-proposal-label">Proposed title</p>
+                      <h3>{organizeProposal.title}</h3>
+                      <p className="organize-proposal-label">Proposed structure</p>
+                      <pre>{organizeProposal.body}</pre>
+                      <footer>
+                        <button className="button button-secondary button-small" type="button" onClick={closeOrganizePanel} disabled={organizeState === "applying"}>
+                          Keep original
+                        </button>
+                        <button className="button button-small" type="button" onClick={() => void applyOrganization()} disabled={organizeState === "applying"}>
+                          {organizeState === "applying" ? "Applying…" : "Apply organization"}
+                        </button>
+                      </footer>
+                    </div>
+                  )}
+                </aside>
+              )}
             </>
           ) : (
             <div className="empty-editor">
