@@ -387,3 +387,10 @@ note's summary. The API returns an approved summary only for the exact applied
 revision, or a current source-matched organization proposal; it never presents
 an older summary after the note changes. Book decks remain exclusively in the
 highlighted Library collection and book action menu.
+
+Summary color is semantic rather than random. Book cards use a stable muted
+palette by kind: overview blue, concept teal, person amber, timeline violet,
+comparison rose, argument terracotta, and event green. The same accent carries
+through the kind pill, memory number, summary block, bullet markers, and source
+links. Approved note summaries use a calm green card while proposed summaries
+use blue. All colors are flat, restrained, and gradient-free.

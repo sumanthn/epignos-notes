@@ -1744,7 +1744,7 @@ export function WorkspaceApp({
                         <p className="note-summary-message error" role="alert">{noteSummaryError}</p>
                       )}
                       {noteSummaryState === "ready" && (
-                        <div className="note-summary-content">
+                        <div className={`note-summary-content ${noteSummarySource === "approved" ? "approved" : "suggested"}`}>
                           <p>{noteSummary}</p>
                           <span>{noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}</span>
                         </div>
@@ -1909,9 +1909,12 @@ export function WorkspaceApp({
                     <p>{cardDeck.overview}</p>
                   </div>
                   <div className="summary-card-grid">
-                    {cardDeck.cards.map((card) => (
-                      <article className="summary-card" key={card.title}>
-                        <p className="summary-card-kind">{card.kind}</p>
+                    {cardDeck.cards.map((card, cardIndex) => (
+                      <article className={`summary-card summary-card-${card.kind}`} key={card.title}>
+                        <div className="summary-card-topline">
+                          <p className="summary-card-kind">{card.kind}</p>
+                          <span>{String(cardIndex + 1).padStart(2, "0")}</span>
+                        </div>
                         <h3>{card.title}</h3>
                         <p className="summary-card-summary">{card.summary}</p>
                         <ul>

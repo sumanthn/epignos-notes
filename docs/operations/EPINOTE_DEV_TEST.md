@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-note-summary-v8
-/opt/epinote/current -> /opt/epinote/releases/20260816-note-summary-v8
+/opt/epinote/releases/20260816-summary-colors-v9
+/opt/epinote/current -> /opt/epinote/releases/20260816-summary-colors-v9
 ```
 
 ## Service layout
@@ -486,6 +486,22 @@ source revisions and hashes            unchanged across all five
 automatically applied proposals         0
 rejected unsafe proposals               3
 temporary verification sessions         removed
+local and public health                 200, database reachable
+```
+
+## 2026-08-16 semantic summary colors
+
+Summary presentation now uses a flat, muted, type-stable color system to aid
+visual recall. The production stylesheet was checked for overview, concept,
+person, timeline, comparison, argument, event, book overview, and note-summary
+card styles. No AI results or canonical notes were regenerated for this visual
+release.
+
+```text
+semantic card palettes                  7 present
+book overview card                      present
+approved/suggested note summary cards   present
+gradients                               none
 local and public health                 200, database reachable
 ```
 
