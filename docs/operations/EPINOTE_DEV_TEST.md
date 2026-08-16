@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-autosave-feedback
-/opt/epinote/current -> /opt/epinote/releases/20260816-autosave-feedback
+/opt/epinote/releases/20260816-sidebar-refinement
+/opt/epinote/current -> /opt/epinote/releases/20260816-sidebar-refinement
 ```
 
 ## Service layout
@@ -234,3 +234,10 @@ represents the saved state as a disabled Save button. The footer and top bar sho
 and `Retry save` after a failed attempt. The existing Sumanth note was verified
 in MongoDB at revision 6 with a recent timestamp and non-empty stored content;
 the content itself was not printed during the check.
+
+## 2026-08-16 sidebar refinement
+
+The `Unsorted` system book now carries the human-facing label `Capture` rather
+than the email-oriented `Inbox`. The left navigation uses solid, restrained
+blue-gray surfaces, a cobalt selection rail, a soft capture badge, and quiet
+hover states. It intentionally contains no gradients or high-saturation fills.

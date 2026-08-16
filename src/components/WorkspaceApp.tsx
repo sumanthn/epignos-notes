@@ -521,11 +521,11 @@ export function WorkspaceApp({
                 type="button"
                 key={book.id}
                 onClick={() => void chooseBook(book.id)}
-                title={book.systemKey === "unsorted" ? "Default inbox for notes not yet organized" : book.name}
+                title={book.systemKey === "unsorted" ? "Default place for quick captures" : book.name}
               >
                 <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
                 <strong>{book.name}</strong>
-                {book.systemKey === "unsorted" && <small>Inbox</small>}
+                {book.systemKey === "unsorted" && <small>Capture</small>}
               </button>
             ))}
             {addingBook && (

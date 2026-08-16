@@ -182,6 +182,11 @@ organization and workspace and use the note revision to prevent stale changes.
 inbox for notes captured before the user chooses an organizational home. It is
 identified by `systemKey: "unsorted"`, not by its display position or name.
 
+The UI describes this role as `Capture` rather than `Inbox`, avoiding email
+language while keeping the stored system identity unchanged. The sidebar uses
+quiet solid blue-gray surfaces and a cobalt selection rail; it does not use
+gradients or saturated decorative color.
+
 The Books plus control creates a named book inline. Selecting a book scopes the
 sidebar note list and makes that book the destination for new notes. Workspace
 search still searches all active notes and switches to a result's book when the
