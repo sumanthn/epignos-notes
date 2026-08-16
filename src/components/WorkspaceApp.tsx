@@ -50,6 +50,10 @@ export function WorkspaceApp({
   const [bookNameDraft, setBookNameDraft] = useState("");
   const [bookSaving, setBookSaving] = useState(false);
   const [bookError, setBookError] = useState("");
+  const [renamingBookId, setRenamingBookId] = useState<string | null>(null);
+  const [bookRenameDraft, setBookRenameDraft] = useState("");
+  const [bookRenameSaving, setBookRenameSaving] = useState(false);
+  const [bookRenameError, setBookRenameError] = useState("");
   const [organizePanelOpen, setOrganizePanelOpen] = useState(false);
   const [organizeState, setOrganizeState] = useState<OrganizeState>("idle");
   const [organizeProposal, setOrganizeProposal] = useState<OrganizeProposal | null>(null);
@@ -248,6 +252,64 @@ export function WorkspaceApp({
     else {
       setBookError("");
       setAddingBook(true);
+    }
+  }
+
+  function beginBookRename(book: WorkspacePayload["books"][number]) {
+    if (book.systemKey === "unsorted" || bookRenameSaving) return;
+    closeBookCreator();
+    setBookRenameDraft(book.name);
+    setBookRenameError("");
+    setRenamingBookId(book.id);
+  }
+
+  function cancelBookRename() {
+    if (bookRenameSaving) return;
+    setRenamingBookId(null);
+    setBookRenameDraft("");
+    setBookRenameError("");
+  }
+
+  async function renameBook(
+    event: React.FormEvent<HTMLFormElement>,
+    book: WorkspacePayload["books"][number],
+  ) {
+    event.preventDefault();
+    const name = bookRenameDraft.trim();
+    if (!name || name.length > 100 || bookRenameSaving) return;
+    if (name === book.name) {
+      cancelBookRename();
+      return;
+    }
+
+    setBookRenameSaving(true);
+    setBookRenameError("");
+    try {
+      const response = await fetch(`/api/books/${book.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        book?: { id: string; name: string };
+      };
+      if (!response.ok || !data.book) {
+        setBookRenameError(data.error || "Unable to rename this book.");
+        return;
+      }
+
+      setBooks((current) =>
+        current.map((item) =>
+          item.id === data.book!.id ? { ...item, name: data.book!.name } : item,
+        ),
+      );
+      setRenamingBookId(null);
+      setBookRenameDraft("");
+    } catch {
+      setBookRenameError("EpiNote is unreachable. The book was not renamed.");
+    } finally {
+      setBookRenameSaving(false);
     }
   }
 
@@ -635,19 +697,49 @@ export function WorkspaceApp({
           </div>
           <div className="book-list" aria-label="Library">
             {books.map((book) => (
-              <button
-                className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
-                type="button"
-                key={book.id}
-                onClick={() => void chooseBook(book.id)}
-                title={book.systemKey === "unsorted" ? "Default place for quick captures" : book.name}
-              >
-                <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
-                <strong>{book.name}</strong>
-                <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
-                  {book.noteCount}
-                </span>
-              </button>
+              renamingBookId === book.id ? (
+                <form
+                  className="book-inline-rename"
+                  key={book.id}
+                  onSubmit={(event) => void renameBook(event, book)}
+                >
+                  <input
+                    value={bookRenameDraft}
+                    onChange={(event) => setBookRenameDraft(event.target.value)}
+                    onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        cancelBookRename();
+                      }
+                    }}
+                    aria-label="Book name"
+                    maxLength={100}
+                    autoFocus
+                    disabled={bookRenameSaving}
+                    required
+                  />
+                  {bookRenameError && <span role="alert">{bookRenameError}</span>}
+                </form>
+              ) : (
+                <button
+                  className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
+                  type="button"
+                  key={book.id}
+                  onClick={() => void chooseBook(book.id)}
+                  onDoubleClick={() => beginBookRename(book)}
+                  onKeyDown={(event) => {
+                    if (event.key === "F2") beginBookRename(book);
+                  }}
+                  title={book.systemKey === "unsorted" ? "Default place for quick captures" : "Double-click to rename"}
+                >
+                  <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
+                  <strong>{book.name}</strong>
+                  <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
+                    {book.noteCount}
+                  </span>
+                </button>
+              )
             ))}
             {addingBook && (
               <form

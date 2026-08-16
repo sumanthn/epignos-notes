@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-book-sidebar-polish-v2
-/opt/epinote/current -> /opt/epinote/releases/20260816-book-sidebar-polish-v2
+/opt/epinote/releases/20260816-book-rename
+/opt/epinote/current -> /opt/epinote/releases/20260816-book-rename
 ```
 
 ## Service layout
@@ -352,3 +352,15 @@ new-book API returned count zero, confirmed the rendered workspace showed count
 one after note creation, and confirmed the deployed client and stylesheet
 contained the cancel interaction and row styles. The public HTTPS health check
 reported the database reachable. The temporary tenant was removed afterward.
+
+## 2026-08-16 book rename
+
+User-created books can be renamed inline by double-clicking or pressing F2 while
+the row is focused. The server scopes book lookup to the signed-in organization,
+validates names, and protects the Quick Capture system book.
+
+Live verification confirmed a rename persisted in the rendered workspace,
+invalid input returned `400`, another organization received `404`, and Quick
+Capture returned `403`. The deployed client contained the inline rename control,
+the public HTTPS health check reported the database reachable, and both isolated
+test tenants were removed afterward.

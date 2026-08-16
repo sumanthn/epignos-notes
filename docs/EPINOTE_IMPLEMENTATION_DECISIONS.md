@@ -256,3 +256,12 @@ The new-book control is a toggle. Its form has an explicit cancel button and
 also closes on Escape, focus leaving the form, or selection of any book,
 including the already-active book. Draft text and errors are cleared whenever
 the form is dismissed.
+
+User-created books can be renamed inline by double-clicking their row or using
+F2 while it is focused. Quick Capture remains protected because its stable
+system role must always be recognizable.
+
+Multiple “libraries” map to the existing Workspace layer rather than a new
+entity. A project is a Workspace; each project has its own Library of books and
+notes. The next vertical slice is workspace creation and switching with all
+book/note APIs scoped to the selected workspace.
