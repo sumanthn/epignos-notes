@@ -31,6 +31,7 @@ type AiJobNotification = {
   updatedAt: string;
 };
 type BookCardsState = "idle" | "loading" | "ready" | "empty" | "error";
+type NoteSummaryState = "idle" | "loading" | "ready" | "empty" | "error";
 type BookCardDeck = {
   id: string;
   bookId: string;
@@ -133,6 +134,11 @@ export function WorkspaceApp({
   const [cardsState, setCardsState] = useState<BookCardsState>("idle");
   const [cardDeck, setCardDeck] = useState<BookCardDeck | null>(null);
   const [cardsError, setCardsError] = useState("");
+  const [noteSummaryOpen, setNoteSummaryOpen] = useState(false);
+  const [noteSummaryState, setNoteSummaryState] = useState<NoteSummaryState>("idle");
+  const [noteSummary, setNoteSummary] = useState("");
+  const [noteSummarySource, setNoteSummarySource] = useState<"approved" | "suggested" | null>(null);
+  const [noteSummaryError, setNoteSummaryError] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -223,6 +229,23 @@ export function WorkspaceApp({
       document.removeEventListener("keydown", closeNotificationsWithKeyboard);
     };
   }, [notificationsOpen]);
+
+  useEffect(() => {
+    if (!noteSummaryOpen) return;
+    function closeSummary(event: PointerEvent) {
+      if (event.target instanceof Element && event.target.closest(".note-summary-control")) return;
+      setNoteSummaryOpen(false);
+    }
+    function closeSummaryWithKeyboard(event: KeyboardEvent) {
+      if (event.key === "Escape") setNoteSummaryOpen(false);
+    }
+    document.addEventListener("pointerdown", closeSummary);
+    document.addEventListener("keydown", closeSummaryWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeSummary);
+      document.removeEventListener("keydown", closeSummaryWithKeyboard);
+    };
+  }, [noteSummaryOpen]);
 
   useEffect(() => {
     if (!selected) return;
@@ -319,6 +342,7 @@ export function WorkspaceApp({
 
   function updateSelected(changes: Partial<Pick<Note, "title" | "body">>) {
     if (!selected) return;
+    if (noteSummaryOpen) closeNoteSummary();
     const next = { ...selected, ...changes };
     setNotes((current) => current.map((note) => (note.id === selected.id ? next : note)));
     window.localStorage.setItem(
@@ -332,6 +356,7 @@ export function WorkspaceApp({
   async function chooseNote(noteId: string) {
     if (noteId === selectedId) {
       if (cardsPanelOpen) closeCardsPanel();
+      if (noteSummaryOpen) closeNoteSummary();
       return;
     }
     if (dirty && selected && !(await saveNote(selected))) return;
@@ -343,6 +368,7 @@ export function WorkspaceApp({
     setPreview(false);
     closeOrganizePanel();
     closeCardsPanel();
+    closeNoteSummary();
   }
 
   async function createNote() {
@@ -375,6 +401,7 @@ export function WorkspaceApp({
       setPreview(false);
       closeOrganizePanel();
       closeCardsPanel();
+      closeNoteSummary();
       window.setTimeout(() => editorRef.current?.focus(), 0);
     } catch {
       setError("EpiNote is unreachable. Try again when your connection returns.");
@@ -388,10 +415,12 @@ export function WorkspaceApp({
     setBookActionId(null);
     if (bookId === activeBookId) {
       if (cardsPanelOpen) closeCardsPanel();
+      if (noteSummaryOpen) closeNoteSummary();
       return;
     }
     if (dirty && selected && !(await saveNote(selected))) return;
     closeCardsPanel();
+    closeNoteSummary();
     setActiveBookId(bookId);
     setSelectedId(notesRef.current.find((note) => note.bookId === bookId)?.id ?? null);
     setDirty(false);
@@ -867,6 +896,7 @@ export function WorkspaceApp({
       return;
     }
     if (dirty && !(await saveNote(selected))) return;
+    closeNoteSummary();
 
     setOrganizePanelOpen(true);
     setOrganizeState("loading");
@@ -939,6 +969,52 @@ export function WorkspaceApp({
     }
   }
 
+  function closeNoteSummary() {
+    setNoteSummaryOpen(false);
+    setNoteSummaryState("idle");
+    setNoteSummary("");
+    setNoteSummarySource(null);
+    setNoteSummaryError("");
+  }
+
+  async function toggleNoteSummary() {
+    if (noteSummaryOpen) {
+      closeNoteSummary();
+      return;
+    }
+    if (!selected) return;
+    if (dirty && !(await saveNote(selected))) return;
+
+    setNoteSummaryOpen(true);
+    setNoteSummaryState("loading");
+    setNoteSummary("");
+    setNoteSummarySource(null);
+    setNoteSummaryError("");
+    try {
+      const response = await fetch(`/api/notes/${selected.id}/summary`, { cache: "no-store" });
+      const data = (await response.json()) as {
+        error?: string;
+        summary?: string | null;
+        source?: "approved" | "suggested" | null;
+      };
+      if (!response.ok) {
+        setNoteSummaryError(data.error || "Unable to load this summary.");
+        setNoteSummaryState("error");
+        return;
+      }
+      if (!data.summary) {
+        setNoteSummaryState("empty");
+        return;
+      }
+      setNoteSummary(data.summary);
+      setNoteSummarySource(data.source ?? null);
+      setNoteSummaryState("ready");
+    } catch {
+      setNoteSummaryError("EpiNote cannot load this summary right now.");
+      setNoteSummaryState("error");
+    }
+  }
+
   function closeCardsPanel() {
     if (cardsPollRef.current !== null) {
       window.clearTimeout(cardsPollRef.current);
@@ -998,6 +1074,7 @@ export function WorkspaceApp({
     if (dirty && selected && !(await saveNote(selected))) return;
     setBookActionId(null);
     closeOrganizePanel();
+    closeNoteSummary();
     setCardsPanelOpen(true);
     setCardsBookId(book.id);
     setCardsState("loading");
@@ -1639,11 +1716,42 @@ export function WorkspaceApp({
                 <button type="button" onClick={() => setPreview(false)} className={!preview ? "active" : ""}>Edit</button>
                 <button type="button" onClick={startBulletList} aria-label="Bullet list">• List</button>
                 <span className="format-spacer" />
-                {activeBook && activeBook.noteCount > 0 && (
-                  <button type="button" onClick={() => void openBookCards(activeBook)}>
-                    Summary cards
+                <div className="note-summary-control">
+                  <button
+                    type="button"
+                    className={noteSummaryOpen ? "active" : ""}
+                    aria-expanded={noteSummaryOpen}
+                    onClick={() => void toggleNoteSummary()}
+                  >
+                    Summary
                   </button>
-                )}
+                  {noteSummaryOpen && (
+                    <aside className="note-summary-popover" aria-label="Note summary">
+                      <header>
+                        <span>
+                          <small>Quick reference</small>
+                          <strong>Note summary</strong>
+                        </span>
+                        <button type="button" onClick={closeNoteSummary} aria-label="Close note summary">×</button>
+                      </header>
+                      {noteSummaryState === "loading" && (
+                        <p className="note-summary-message" role="status">Loading summary…</p>
+                      )}
+                      {noteSummaryState === "empty" && (
+                        <p className="note-summary-message">Organize this note to create its summary.</p>
+                      )}
+                      {noteSummaryState === "error" && (
+                        <p className="note-summary-message error" role="alert">{noteSummaryError}</p>
+                      )}
+                      {noteSummaryState === "ready" && (
+                        <div className="note-summary-content">
+                          <p>{noteSummary}</p>
+                          <span>{noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}</span>
+                        </div>
+                      )}
+                    </aside>
+                  )}
+                </div>
                 <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Read</button>
               </div>
               <div className="editor-area">

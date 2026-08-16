@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-summary-cards-v7
-/opt/epinote/current -> /opt/epinote/releases/20260816-summary-cards-v7
+/opt/epinote/releases/20260816-note-summary-v8
+/opt/epinote/current -> /opt/epinote/releases/20260816-note-summary-v8
 ```
 
 ## Service layout
@@ -516,4 +516,20 @@ deployed client summary-card control    present
 temporary verification sessions         removed
 local and public health                 200, database reachable
 quality gates                           typecheck, lint, build, 24 tests
+```
+
+## 2026-08-16 note summary popover
+
+The note toolbar now uses a single `Summary` control. It opens a compact popover
+with only that note's current approved or source-matched proposed summary; book
+Summary Cards remain in the Library tree.
+
+```text
+Israel Creation summary endpoint       200
+summary source                          approved
+single summary                          493 characters
+note revision and content hash changed  0
+deployed note-summary client            present
+temporary verification session          removed
+local and public health                 200, database reachable
 ```

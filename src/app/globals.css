@@ -236,6 +236,18 @@ a { color: inherit; }
 .format-bar button { height: 31px; min-width: 32px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 0.76rem; cursor: pointer; }
 .format-bar button:hover, .format-bar button.active { background: var(--selected); color: var(--cobalt); }
 .format-spacer { flex: 1; }
+.note-summary-control { position: relative; }
+.note-summary-popover { position: absolute; z-index: 55; top: 39px; right: -42px; width: min(380px, calc(100vw - 32px)); overflow: hidden; border: 1px solid #dce2ec; border-radius: 11px; background: var(--surface); box-shadow: 0 15px 42px rgba(26, 37, 58, 0.14); }
+.note-summary-popover header { min-height: 57px; padding: 11px 13px 10px 15px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid #e8ebf1; background: #fafbfc; }
+.note-summary-popover header span { display: flex; flex-direction: column; gap: 2px; }
+.note-summary-popover header small { color: #778296; font-size: 0.56rem; font-weight: 740; letter-spacing: 0.08em; text-transform: uppercase; }
+.note-summary-popover header strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 0.92rem; font-weight: 550; }
+.format-bar .note-summary-popover header button { width: 27px; min-width: 27px; height: 27px; padding: 0; color: #7b8595; font-size: 1rem; }
+.note-summary-message { margin: 0; padding: 24px 18px; color: #6b7689; font-size: 0.73rem; line-height: 1.5; text-align: center; }
+.note-summary-message.error { color: var(--danger); }
+.note-summary-content { padding: 18px 18px 15px; }
+.note-summary-content p { margin: 0; color: #334056; font-family: Georgia, "Times New Roman", serif; font-size: 0.91rem; line-height: 1.65; }
+.note-summary-content > span { display: block; margin-top: 13px; color: #7a8495; font-size: 0.57rem; font-weight: 690; letter-spacing: 0.06em; text-transform: uppercase; }
 .editor-area { min-height: 0; padding: 36px clamp(32px, 7vw, 105px); overflow: auto; }
 .editor-area textarea { width: 100%; height: 100%; min-height: 330px; resize: none; border: 0; outline: 0; background: transparent; color: #303b4e; font-family: Georgia, "Times New Roman", serif; font-size: 1.12rem; line-height: 1.85; }
 .editor-area textarea::placeholder { color: #adb3bd; }
@@ -345,6 +357,7 @@ a { color: inherit; }
   .note-header { padding: 24px 20px 16px; }
   .note-title-input { font-size: 2rem; }
   .format-bar { padding: 0 15px; }
+  .note-summary-popover { position: fixed; top: 114px; right: 12px; left: 12px; width: auto; }
   .editor-area { padding: 24px 20px; }
   .note-footer { padding-inline: 12px; }
   .workspace-error { display: none; }

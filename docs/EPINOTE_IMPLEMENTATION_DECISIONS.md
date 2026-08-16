@@ -380,3 +380,10 @@ Summary Cards also render as the first, highlighted child of every expanded
 book, above ordinary notes. The row is a persistent collection entry rather
 than a hidden menu action and exposes ready, queued, processing, failed, and
 empty-book states. The book menu and editor toolbar remain secondary shortcuts.
+
+The editor toolbar is note-scoped, so it exposes `Summary` rather than book
+Summary Cards. Clicking it opens a compact popover containing only the current
+note's summary. The API returns an approved summary only for the exact applied
+revision, or a current source-matched organization proposal; it never presents
+an older summary after the note changes. Book decks remain exclusively in the
+highlighted Library collection and book action menu.
