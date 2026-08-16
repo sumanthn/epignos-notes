@@ -1,0 +1,26 @@
+[Unit]
+Description=EpiNote web application
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=epignos
+Group=epignos
+WorkingDirectory=/opt/epinote/current
+EnvironmentFile=/home/epignos/.config/epinote/app.env
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+ExecStart=/usr/local/bin/node .next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

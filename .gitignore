@@ -1,0 +1,20 @@
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local scratch files
+tmp/
+*.log
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,114 @@
+# EpiNote Implementation Decisions
+
+Status: active implementation record
+Last updated: 2026-08-16
+
+This file records concrete engineering decisions as EpiNote is built. Product,
+storage, and authentication contracts remain in their dedicated design files.
+
+## 2026-08-16: application framework
+
+Decision: use one **Next.js 16 App Router application with TypeScript and React**.
+
+Why:
+
+- The landing page, authentication pages, notes UI, and same-origin API can ship
+  as one deployable application.
+- Server-rendered protected pages and route handlers avoid a second backend
+  service without coupling browser code directly to MongoDB.
+- React is appropriate for the interactive note editor and navigation tree.
+- Plain CSS is sufficient for the approved Paper, Ink, Cobalt theme; no UI
+  framework or design-system dependency is needed initially.
+
+Runtime baseline:
+
+```text
+Node.js 24 LTS
+Next.js 16.3.x
+React 19.2.x
+TypeScript strict mode
+npm with committed package-lock.json
+```
+
+References:
+
+- Next.js installation and runtime requirements:
+  <https://nextjs.org/docs/app/getting-started/installation>
+- Next.js self-hosting:
+  <https://nextjs.org/docs/app/guides/self-hosting>
+- Node.js release schedule:
+  <https://nodejs.org/en/about/previous-releases>
+
+## 2026-08-16: first vertical slice
+
+The first deployed workflow is:
+
+```text
+Visitor -> landing page -> register/login -> protected workspace
+        -> create note -> edit title/body -> save -> reload persisted note
+```
+
+It includes the real hierarchy by automatically creating a personal
+organization, `My Workspace`, and its required `Unsorted` book for a new user.
+It does not include attachments, rich block editing, search, invitations,
+password reset email, or AI behavior yet.
+
+The initial editor is intentionally a reliable text editor stored as validated
+canonical paragraph blocks. A richer block editor can replace the input later
+without changing the note ownership or concurrency contract.
+
+## 2026-08-16: application dependencies
+
+- Official `mongodb` driver rather than an ODM.
+- `argon2` for Argon2id password hashing.
+- `zod` for request and environment validation.
+- Opaque MongoDB-backed sessions in HTTP-only cookies.
+- No Redux, component library, ORM, queue, cache, or separate API service.
+
+## 2026-08-16: dev registration
+
+The dev-test deployment may set:
+
+```text
+AUTH_REQUIRE_EMAIL_VERIFICATION=false
+```
+
+This makes a new dev account active immediately so the first workflow can be
+tested before an email provider is selected. Production must require verified
+email. The bypass is environment-controlled and must be shown as a development
+condition, not silently inferred from the hostname.
+
+## 2026-08-16: deployment
+
+The application runs as the unprivileged `epignos` user under systemd, listens
+only on `127.0.0.1:3000`, and reaches MongoDB on `127.0.0.1:27017`. A reverse
+proxy is the only public web listener.
+
+Deployment files live in the repository under `deploy/`; secrets live only in a
+server environment file with mode `0600`. Database credentials, server IPs, and
+private-key paths are never committed.
+
+The first deployment is reached by the server IP. As of January 2026, Let's
+Encrypt supports short-lived publicly trusted IP certificates. Certbot 5.7.0
+successfully issued the certificate with an IP identifier and the `shortlived`
+profile. nginx terminates HTTPS, HTTP redirects to HTTPS, and EpiNote uses its
+production-form `Secure` session cookie on the dev-test host.
+
+Certbot's renewal timer and nginx stop/start hooks were verified with a simulated
+renewal. Exact deployed state and checks are recorded in
+`docs/operations/EPINOTE_DEV_TEST.md`.
+
+References:
+
+- Let's Encrypt IP certificates:
+  <https://letsencrypt.org/2025/07/01/issuing-our-first-ip-address-certificate/>
+- Certbot IP identifier support:
+  <https://eff-certbot.readthedocs.io/en/stable/using.html>
+
+## Next decisions
+
+- Email provider and verified sender domain.
+- Public application domain.
+- Rich-text editor library, only after the text workflow is reliable.
+- Attachment ingestion and image storage UI.
+- Narrow AI proposal workflow after canonical notes are proven.

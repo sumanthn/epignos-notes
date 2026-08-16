@@ -1,0 +1,111 @@
+import { Db, MongoClient } from "mongodb";
+
+import { getEnv } from "@/lib/env";
+
+declare global {
+  var epinoteMongoClient: MongoClient | undefined;
+  var epinoteIndexPromise: Promise<void> | undefined;
+}
+
+export async function getDb(): Promise<Db> {
+  const env = getEnv();
+
+  if (!global.epinoteMongoClient) {
+    global.epinoteMongoClient = new MongoClient(env.MONGODB_URI, {
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      serverSelectionTimeoutMS: 5_000,
+    });
+  }
+
+  await global.epinoteMongoClient.connect();
+  return global.epinoteMongoClient.db(env.MONGODB_DB);
+}
+
+export async function ensureDbIndexes(): Promise<void> {
+  if (!global.epinoteIndexPromise) {
+    global.epinoteIndexPromise = createIndexes().catch((error) => {
+      global.epinoteIndexPromise = undefined;
+      throw error;
+    });
+  }
+
+  return global.epinoteIndexPromise;
+}
+
+async function createIndexes(): Promise<void> {
+  const db = await getDb();
+
+  await Promise.all([
+    db.collection("users").createIndexes([
+      { key: { emailNormalized: 1 }, name: "users_email_unique", unique: true },
+      { key: { status: 1, updatedAt: -1 }, name: "users_status_updated" },
+    ]),
+    db.collection("sessions").createIndexes([
+      { key: { tokenHash: 1 }, name: "sessions_token_unique", unique: true },
+      {
+        key: { expiresAt: 1 },
+        name: "sessions_expiry_ttl",
+        expireAfterSeconds: 0,
+      },
+      {
+        key: { userId: 1, status: 1, expiresAt: 1 },
+        name: "sessions_user_status_expiry",
+      },
+    ]),
+    db.collection("organizations").createIndex(
+      { slug: 1 },
+      { name: "organizations_slug_unique", unique: true },
+    ),
+    db.collection("memberships").createIndexes([
+      {
+        key: { organizationId: 1, userId: 1 },
+        name: "memberships_org_user_unique",
+        unique: true,
+      },
+      {
+        key: { userId: 1, status: 1, updatedAt: -1 },
+        name: "memberships_user_status_updated",
+      },
+    ]),
+    db.collection("workspaces").createIndexes([
+      {
+        key: { organizationId: 1, slug: 1 },
+        name: "workspaces_org_slug_unique",
+        unique: true,
+      },
+      {
+        key: { organizationId: 1, status: 1, updatedAt: -1 },
+        name: "workspaces_org_status_updated",
+      },
+    ]),
+    db.collection("books").createIndexes([
+      {
+        key: { organizationId: 1, workspaceId: 1, status: 1, position: 1 },
+        name: "books_navigation",
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, systemKey: 1 },
+        name: "books_system_unique",
+        unique: true,
+        partialFilterExpression: { systemKey: { $type: "string" } },
+      },
+    ]),
+    db.collection("notes").createIndexes([
+      {
+        key: {
+          organizationId: 1,
+          workspaceId: 1,
+          bookId: 1,
+          status: 1,
+          updatedAt: -1,
+        },
+        name: "notes_book_navigation",
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, status: 1, updatedAt: -1 },
+        name: "notes_workspace_navigation",
+      },
+    ]),
+  ]);
+}
