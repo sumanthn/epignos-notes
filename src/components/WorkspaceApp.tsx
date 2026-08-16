@@ -18,8 +18,12 @@ export function WorkspaceApp({
   userEmail: string;
 }) {
   const router = useRouter();
+  const initialBookId = initialWorkspace.books[0]?.id ?? null;
+  const initialNoteId = initialWorkspace.notes.find((note) => note.bookId === initialBookId)?.id ?? null;
+  const [books, setBooks] = useState(initialWorkspace.books);
   const [notes, setNotes] = useState(initialWorkspace.notes);
-  const [selectedId, setSelectedId] = useState(initialWorkspace.notes[0]?.id ?? null);
+  const [activeBookId, setActiveBookId] = useState<string | null>(initialBookId);
+  const [selectedId, setSelectedId] = useState(initialNoteId);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("Saved");
   const [error, setError] = useState("");
@@ -35,6 +39,10 @@ export function WorkspaceApp({
   const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
   const [noteTitleDraft, setNoteTitleDraft] = useState("");
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [addingBook, setAddingBook] = useState(false);
+  const [bookNameDraft, setBookNameDraft] = useState("");
+  const [bookSaving, setBookSaving] = useState(false);
+  const [bookError, setBookError] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -46,13 +54,11 @@ export function WorkspaceApp({
   const selected = notes.find((note) => note.id === selectedId) ?? null;
   const filteredNotes = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return notes;
-    return notes.filter(
-      (note) =>
-        note.title.toLowerCase().includes(normalized) ||
-        note.body.toLowerCase().includes(normalized),
+    if (!normalized) return notes.filter((note) => note.bookId === activeBookId);
+    return notes.filter((note) =>
+      note.title.toLowerCase().includes(normalized) || note.body.toLowerCase().includes(normalized),
     );
-  }, [notes, query]);
+  }, [activeBookId, notes, query]);
 
   useEffect(() => {
     if (!selected) return;
@@ -160,6 +166,8 @@ export function WorkspaceApp({
   async function chooseNote(noteId: string) {
     if (noteId === selectedId) return;
     if (dirty && selected && !(await saveNote(selected))) return;
+    const nextNote = notesRef.current.find((note) => note.id === noteId);
+    if (nextNote) setActiveBookId(nextNote.bookId);
     setSelectedId(noteId);
     setDirty(false);
     setError("");
@@ -168,6 +176,7 @@ export function WorkspaceApp({
 
   async function createNote() {
     if (creating) return;
+    if (!activeBookId) return;
     if (dirty && selected && !(await saveNote(selected))) return;
     setCreating(true);
     setError("");
@@ -176,7 +185,7 @@ export function WorkspaceApp({
       const response = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify({ bookId: activeBookId }),
       });
       const data = (await response.json()) as { error?: string; note?: Note };
       if (!response.ok || !data.note) {
@@ -193,6 +202,54 @@ export function WorkspaceApp({
       setError("EpiNote is unreachable. Try again when your connection returns.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function chooseBook(bookId: string) {
+    if (bookId === activeBookId) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setActiveBookId(bookId);
+    setSelectedId(notesRef.current.find((note) => note.bookId === bookId)?.id ?? null);
+    setDirty(false);
+    setError("");
+    setPreview(false);
+    setQuery("");
+  }
+
+  async function createBook(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = bookNameDraft.trim();
+    if (!name || name.length > 100 || bookSaving) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setBookSaving(true);
+    setBookError("");
+
+    try {
+      const response = await fetch("/api/books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        book?: { id: string; name: string; systemKey: string | null };
+      };
+      if (!response.ok || !data.book) {
+        setBookError(data.error || "Unable to create this book.");
+        return;
+      }
+
+      setBooks((current) => [...current, data.book!]);
+      setActiveBookId(data.book.id);
+      setSelectedId(null);
+      setBookNameDraft("");
+      setAddingBook(false);
+      setDirty(false);
+      setSaveState("Saved");
+    } catch {
+      setBookError("EpiNote is unreachable. The book was not created.");
+    } finally {
+      setBookSaving(false);
     }
   }
 
@@ -350,7 +407,7 @@ export function WorkspaceApp({
       setNotes(remaining);
       window.localStorage.removeItem(`epinote:draft:${note.id}`);
       if (selectedId === note.id) {
-        setSelectedId(remaining[0]?.id ?? null);
+        setSelectedId(remaining.find((item) => item.bookId === activeBookId)?.id ?? null);
         setDirty(false);
         setSaveState("Saved");
         setPreview(false);
@@ -363,7 +420,7 @@ export function WorkspaceApp({
   }
 
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
-  const activeBook = initialWorkspace.books[0];
+  const activeBook = books.find((book) => book.id === activeBookId) ?? null;
 
   return (
     <main className="workspace-shell">
@@ -447,10 +504,55 @@ export function WorkspaceApp({
         <aside className="notes-sidebar">
           <div className="sidebar-heading">
             <span>Books</span>
-            <button type="button" aria-label="Create book" title="Books are coming next">+</button>
+            <button
+              type="button"
+              aria-label="Create book"
+              title="Create book"
+              onClick={() => {
+                setBookError("");
+                setAddingBook(true);
+              }}
+            >+</button>
           </div>
-          <div className="book-row"><span>▾</span><strong>{activeBook?.name ?? "Unsorted"}</strong></div>
-          <button className="new-note-button" type="button" onClick={createNote} disabled={creating}>
+          <div className="book-list" aria-label="Books">
+            {books.map((book) => (
+              <button
+                className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
+                type="button"
+                key={book.id}
+                onClick={() => void chooseBook(book.id)}
+                title={book.systemKey === "unsorted" ? "Default inbox for notes not yet organized" : book.name}
+              >
+                <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
+                <strong>{book.name}</strong>
+                {book.systemKey === "unsorted" && <small>Inbox</small>}
+              </button>
+            ))}
+            {addingBook && (
+              <form className="book-create-form" onSubmit={createBook}>
+                <input
+                  value={bookNameDraft}
+                  onChange={(event) => setBookNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setAddingBook(false);
+                      setBookNameDraft("");
+                      setBookError("");
+                    }
+                  }}
+                  placeholder="Book name"
+                  aria-label="Book name"
+                  maxLength={100}
+                  autoFocus
+                  disabled={bookSaving}
+                  required
+                />
+                <button type="submit" aria-label="Add book" disabled={bookSaving}>✓</button>
+                {bookError && <span role="alert">{bookError}</span>}
+              </form>
+            )}
+          </div>
+          <button className="new-note-button" type="button" onClick={createNote} disabled={creating || !activeBookId}>
             <span>+</span>{creating ? "Creating…" : "New note"}
           </button>
           <div className="note-list" aria-label="Notes">
@@ -516,7 +618,13 @@ export function WorkspaceApp({
               </div>
             ))}
             {filteredNotes.length === 0 && (
-              <p className="empty-list">{notes.length ? "No notes match." : "Your first note starts here."}</p>
+              <p className="empty-list">
+                {query.trim()
+                  ? "No notes match."
+                  : notes.length
+                    ? "No notes in this book yet."
+                    : "Your first note starts here."}
+              </p>
             )}
           </div>
         </aside>

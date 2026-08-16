@@ -13,7 +13,7 @@ export interface WorkspaceIdentity {
 export interface WorkspacePayload {
   organization: { id: string; name: string };
   workspace: { id: string; name: string };
-  books: Array<{ id: string; name: string }>;
+  books: Array<{ id: string; name: string; systemKey: string | null }>;
   notes: Array<{
     id: string;
     bookId: string;
@@ -168,7 +168,11 @@ export async function getWorkspacePayload(user: SessionUser): Promise<WorkspaceP
   return {
     organization: { id: organization._id.toHexString(), name: organization.name },
     workspace: { id: workspace._id.toHexString(), name: workspace.name },
-    books: books.map((book) => ({ id: book._id.toHexString(), name: book.name })),
+    books: books.map((book) => ({
+      id: book._id.toHexString(),
+      name: book.name,
+      systemKey: typeof book.systemKey === "string" ? book.systemKey : null,
+    })),
     notes: notes.map((note) => ({
       id: note._id.toHexString(),
       bookId: note.bookId.toHexString(),

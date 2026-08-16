@@ -175,3 +175,15 @@ rename interaction. Delete requires confirmation and archives the note instead
 of physically removing its data, preserving the recoverable lifecycle defined
 by the storage design. Both mutations remain scoped to the signed-in user's
 organization and workspace and use the note revision to prevent stale changes.
+
+## 2026-08-16: usable books and Unsorted
+
+`Unsorted` is the workspace's permanent system book and acts as its default
+inbox for notes captured before the user chooses an organizational home. It is
+identified by `systemKey: "unsorted"`, not by its display position or name.
+
+The Books plus control creates a named book inline. Selecting a book scopes the
+sidebar note list and makes that book the destination for new notes. Workspace
+search still searches all active notes and switches to a result's book when the
+result is opened. Book and note creation validate that the selected book is
+active and belongs to the signed-in user's organization and workspace.

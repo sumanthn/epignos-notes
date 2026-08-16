@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-note-row-actions
-/opt/epinote/current -> /opt/epinote/releases/20260816-note-row-actions
+/opt/epinote/releases/20260816-book-creation
+/opt/epinote/current -> /opt/epinote/releases/20260816-book-creation
 ```
 
 ## Service layout
@@ -215,3 +215,13 @@ registered an isolated temporary user, created a note, renamed it at revision 1,
 deleted it at revision 2, confirmed it disappeared after workspace reload, and
 confirmed MongoDB retained it with `status: archived` and the renamed title. The
 temporary account and tenant were removed afterward.
+
+## 2026-08-16 book creation
+
+`Unsorted` is presented as the workspace's default Inbox. The Books plus control
+creates a named book inline; selecting it filters the note list, and new notes
+are stored in that selected book. Live verification created a `Research` book,
+created and renamed a note inside it, reloaded the workspace, and confirmed the
+book-note relationship directly in MongoDB. A user from a separate temporary
+organization received `404` when attempting to create a note in that book. Both
+temporary tenants were removed afterward.
