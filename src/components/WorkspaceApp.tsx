@@ -32,6 +32,16 @@ type AiJobNotification = {
 };
 type BookCardsState = "idle" | "loading" | "ready" | "empty" | "error";
 type NoteSummaryState = "idle" | "loading" | "ready" | "empty" | "error";
+type NoteSummaryFacets = {
+  authors: string[];
+  references: string[];
+  people: string[];
+  topics: string[];
+  places: string[];
+  dates: string[];
+  sources: Array<{ label: string; url: string }>;
+};
+type SummaryFacetKind = "author" | "source" | "person" | "topic" | "place" | "date";
 type BookCardDeck = {
   id: string;
   bookId: string;
@@ -69,6 +79,53 @@ function UiIcon({ name }: { name: UiIconName }) {
     <svg className="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       {paths[name]}
     </svg>
+  );
+}
+
+function highlightedSummary(summary: string, facets: NoteSummaryFacets | null): React.ReactNode {
+  if (!facets) return summary;
+  const terms: Array<{ label: string; kind: SummaryFacetKind }> = [
+    ...facets.authors.map((label) => ({ label, kind: "author" as const })),
+    ...facets.references.map((label) => ({ label, kind: "source" as const })),
+    ...facets.people.map((label) => ({ label, kind: "person" as const })),
+    ...facets.topics.map((label) => ({ label, kind: "topic" as const })),
+    ...facets.places.map((label) => ({ label, kind: "place" as const })),
+    ...facets.dates.map((label) => ({ label, kind: "date" as const })),
+  ];
+  const byLabel = new Map<string, SummaryFacetKind>();
+  for (const term of terms) {
+    const key = term.label.toLocaleLowerCase();
+    if (!byLabel.has(key)) byLabel.set(key, term.kind);
+  }
+  const labels = Array.from(byLabel.keys()).sort((left, right) => right.length - left.length);
+  if (labels.length === 0) return summary;
+  const pattern = new RegExp(
+    `(${labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")).join("|")})`,
+    "giu",
+  );
+  return summary.split(pattern).map((part, index) => {
+    const kind = byLabel.get(part.toLocaleLowerCase());
+    return kind
+      ? <mark className={`summary-entity ${kind}`} key={`${index}-${part}`}>{part}</mark>
+      : part;
+  });
+}
+
+function SummaryFacetGroup({
+  label,
+  kind,
+  values,
+}: {
+  label: string;
+  kind: SummaryFacetKind;
+  values: string[];
+}) {
+  if (values.length === 0) return null;
+  return (
+    <div className="summary-facet-group">
+      <span>{label}</span>
+      <div>{values.map((value) => <span className={`summary-facet ${kind}`} key={value}>{value}</span>)}</div>
+    </div>
   );
 }
 
@@ -139,6 +196,8 @@ export function WorkspaceApp({
   const [noteSummary, setNoteSummary] = useState("");
   const [noteSummarySource, setNoteSummarySource] = useState<"approved" | "suggested" | null>(null);
   const [noteSummaryError, setNoteSummaryError] = useState("");
+  const [noteSummaryFacets, setNoteSummaryFacets] = useState<NoteSummaryFacets | null>(null);
+  const [noteSummaryFacetsState, setNoteSummaryFacetsState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -975,6 +1034,28 @@ export function WorkspaceApp({
     setNoteSummary("");
     setNoteSummarySource(null);
     setNoteSummaryError("");
+    setNoteSummaryFacets(null);
+    setNoteSummaryFacetsState("idle");
+  }
+
+  async function enrichNoteSummary(noteId: string) {
+    setNoteSummaryFacetsState("loading");
+    try {
+      const response = await fetch(`/api/notes/${noteId}/summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as { error?: string; facets?: NoteSummaryFacets };
+      if (!response.ok || !data.facets) {
+        setNoteSummaryFacetsState("error");
+        return;
+      }
+      setNoteSummaryFacets(data.facets);
+      setNoteSummaryFacetsState("ready");
+    } catch {
+      setNoteSummaryFacetsState("error");
+    }
   }
 
   async function toggleNoteSummary() {
@@ -990,12 +1071,16 @@ export function WorkspaceApp({
     setNoteSummary("");
     setNoteSummarySource(null);
     setNoteSummaryError("");
+    setNoteSummaryFacets(null);
+    setNoteSummaryFacetsState("idle");
     try {
       const response = await fetch(`/api/notes/${selected.id}/summary`, { cache: "no-store" });
       const data = (await response.json()) as {
         error?: string;
         summary?: string | null;
         source?: "approved" | "suggested" | null;
+        facets?: NoteSummaryFacets | null;
+        profiled?: boolean;
       };
       if (!response.ok) {
         setNoteSummaryError(data.error || "Unable to load this summary.");
@@ -1008,7 +1093,10 @@ export function WorkspaceApp({
       }
       setNoteSummary(data.summary);
       setNoteSummarySource(data.source ?? null);
+      setNoteSummaryFacets(data.facets ?? null);
+      setNoteSummaryFacetsState(data.profiled ? "ready" : "loading");
       setNoteSummaryState("ready");
+      if (!data.profiled) void enrichNoteSummary(selected.id);
     } catch {
       setNoteSummaryError("EpiNote cannot load this summary right now.");
       setNoteSummaryState("error");
@@ -1745,8 +1833,44 @@ export function WorkspaceApp({
                       )}
                       {noteSummaryState === "ready" && (
                         <div className={`note-summary-content ${noteSummarySource === "approved" ? "approved" : "suggested"}`}>
-                          <p>{noteSummary}</p>
-                          <span>{noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}</span>
+                          <p>{highlightedSummary(noteSummary, noteSummaryFacets)}</p>
+                          <span className="note-summary-source-label">
+                            {noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}
+                          </span>
+                          {noteSummaryFacetsState === "loading" && (
+                            <p className="summary-profile-status" role="status">Finding people, topics, and sources…</p>
+                          )}
+                          {noteSummaryFacetsState === "error" && (
+                            <p className="summary-profile-status">Context labels are unavailable right now.</p>
+                          )}
+                          {noteSummaryFacets && (
+                            <div className="summary-profile">
+                              <SummaryFacetGroup label="Authors" kind="author" values={noteSummaryFacets.authors} />
+                              <SummaryFacetGroup label="Sources" kind="source" values={noteSummaryFacets.references} />
+                              <SummaryFacetGroup label="People" kind="person" values={noteSummaryFacets.people} />
+                              <SummaryFacetGroup label="Topics" kind="topic" values={noteSummaryFacets.topics} />
+                              <SummaryFacetGroup label="Places" kind="place" values={noteSummaryFacets.places} />
+                              <SummaryFacetGroup label="Dates" kind="date" values={noteSummaryFacets.dates} />
+                              {noteSummaryFacets.sources.length > 0 && (
+                                <div className="summary-facet-group">
+                                  <span>Links</span>
+                                  <div>
+                                    {noteSummaryFacets.sources.map((source) => (
+                                      <a
+                                        className="summary-facet link"
+                                        href={source.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        key={source.url}
+                                      >
+                                        {source.label} ↗
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </aside>

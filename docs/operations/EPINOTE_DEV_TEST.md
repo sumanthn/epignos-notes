@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-summary-colors-v9
-/opt/epinote/current -> /opt/epinote/releases/20260816-summary-colors-v9
+/opt/epinote/releases/20260816-summary-wiki-grounded-v13
+/opt/epinote/current -> /opt/epinote/releases/20260816-summary-wiki-grounded-v13
 ```
 
 ## Service layout
@@ -548,4 +548,31 @@ note revision and content hash changed  0
 deployed note-summary client            present
 temporary verification session          removed
 local and public health                 200, database reachable
+```
+
+## 2026-08-16 grounded wiki-style note summaries
+
+The note summary popover now adds stable, muted colors for authors, named source
+works, people, topics, places, and dates. Actual external links are extracted
+and validated deterministically from the saved note and shown separately. The
+profile is immutable, cached against the exact note and summary revision, and
+cannot change canonical note content.
+
+The real `Israel Creation` note was profiled through the authenticated public
+endpoint. Its saved source no longer contains an explicit author or URL, so the
+grounded empty author/link groups were intentionally omitted.
+
+```text
+profile generation and cached retrieval 200 / 200
+model                                   openai/gpt-oss-120b
+named sources                           2
+people / topics                         4 / 5
+places / dates                          4 / 3
+all displayed labels in saved evidence yes
+external links outside saved note       0
+note revision and content hash changed  0
+temporary verification sessions         removed
+deployed semantic CSS selectors         present
+local and public health                 200, database reachable
+quality gates                           typecheck, lint, build, 27 tests
 ```

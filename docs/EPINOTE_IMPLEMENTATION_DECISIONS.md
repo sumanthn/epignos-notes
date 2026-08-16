@@ -394,3 +394,16 @@ comparison rose, argument terracotta, and event green. The same accent carries
 through the kind pill, memory number, summary block, bullet markers, and source
 links. Approved note summaries use a calm green card while proposed summaries
 use blue. All colors are flat, restrained, and gradient-free.
+
+Note summaries can be enriched once with a cached wiki-style profile. A short
+fast-model request extracts only grounded authors, named source works, people,
+topics, places, and dates from the existing summary and a bounded source
+excerpt. Source URLs are
+never model-generated: the server extracts and validates them directly from the
+saved note. Profiles are immutable and keyed to the note content hash and exact
+summary, so an edited note cannot reuse stale labels. The UI highlights matching
+terms inline and renders the context as compact, consistently colored chips.
+Named source works and validated external links remain visibly distinct.
+Every model-proposed label must also occur literally in the summary or saved note
+before it can be stored or displayed. GPT-OSS 120B is the primary profile model,
+with the configured fast and large-note models retained as bounded fallbacks.
