@@ -153,3 +153,11 @@ The top-right user avatar opens an account menu; it never logs the user out
 directly. The menu shows the signed-in person's name and email plus the active
 organization and workspace. `Sign out` is a separate labeled action so it cannot
 be triggered accidentally by opening user information.
+
+## 2026-08-16: workspace renaming
+
+An active organization owner or admin may rename an active workspace from the
+account menu. Renaming changes only the visible workspace `name`; its stable ID,
+internal slug, books, notes, permissions, and URLs do not change. The server
+authorizes the request through the active organization membership and scopes the
+update by organization and workspace IDs.

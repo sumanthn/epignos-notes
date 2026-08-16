@@ -273,6 +273,10 @@ Workspace creation is idempotent:
 2. Create its `Unsorted` book under a unique index.
 3. Retry step two safely if it fails.
 
+Workspace renaming changes only `name` and `updatedAt`. The stable workspace ID,
+slug, books, notes, and permissions do not change. An active organization owner
+or admin must authorize the update.
+
 ### `books`
 
 ```text

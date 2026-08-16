@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-account-menu
-/opt/epinote/current -> /opt/epinote/releases/20260816-account-menu
+/opt/epinote/releases/20260816-workspace-rename
+/opt/epinote/current -> /opt/epinote/releases/20260816-workspace-rename
 ```
 
 ## Service layout
@@ -187,3 +187,11 @@ The top-right avatar opens a user-information menu rather than logging out. The
 deployed menu was verified with an authenticated temporary account to contain the
 user name, email, organization, workspace, and a separate `Sign out` action. The
 temporary account and tenant documents were removed after verification.
+
+## 2026-08-16 workspace rename
+
+Organization owners/admins can rename the active workspace from the account
+menu. Deployment verification renamed a temporary workspace, reloaded the page,
+confirmed MongoDB persistence and an unchanged slug, rejected an unrelated
+workspace ID with `404`, and rejected an invalid name with `400`. The temporary
+account and tenant were removed afterward.

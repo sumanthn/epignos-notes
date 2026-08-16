@@ -26,6 +26,11 @@ export function WorkspaceApp({
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState(initialWorkspace.workspace.name);
+  const [workspaceDraft, setWorkspaceDraft] = useState(initialWorkspace.workspace.name);
+  const [renamingWorkspace, setRenamingWorkspace] = useState(false);
+  const [workspaceSaving, setWorkspaceSaving] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState("");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -232,6 +237,48 @@ export function WorkspaceApp({
     else setError("Unable to sign out. Your notes remain available here.");
   }
 
+  async function renameWorkspace(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextName = workspaceDraft.trim();
+    if (nextName.length < 2 || nextName.length > 100) {
+      setWorkspaceError("Use a workspace name between 2 and 100 characters.");
+      return;
+    }
+
+    if (nextName === workspaceName) {
+      setRenamingWorkspace(false);
+      setWorkspaceError("");
+      return;
+    }
+
+    setWorkspaceSaving(true);
+    setWorkspaceError("");
+    try {
+      const response = await fetch(`/api/workspaces/${initialWorkspace.workspace.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nextName }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        workspace?: { id: string; name: string };
+      };
+
+      if (!response.ok || !data.workspace) {
+        setWorkspaceError(data.error || "Unable to rename this workspace.");
+        return;
+      }
+
+      setWorkspaceName(data.workspace.name);
+      setWorkspaceDraft(data.workspace.name);
+      setRenamingWorkspace(false);
+    } catch {
+      setWorkspaceError("EpiNote is unreachable. Try again when your connection returns.");
+    } finally {
+      setWorkspaceSaving(false);
+    }
+  }
+
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = initialWorkspace.books[0];
 
@@ -241,7 +288,7 @@ export function WorkspaceApp({
         <div className="workspace-identity">
           <span className="wordmark workspace-wordmark">EpiNote</span>
           <span className="topbar-divider" />
-          <span className="workspace-name">{initialWorkspace.workspace.name}</span>
+          <span className="workspace-name">{workspaceName}</span>
         </div>
         <label className="workspace-search">
           <span aria-hidden="true">⌕</span>
@@ -268,8 +315,50 @@ export function WorkspaceApp({
                 <span>Organization</span>
                 <strong>{initialWorkspace.organization.name}</strong>
                 <span>Workspace</span>
-                <strong>{initialWorkspace.workspace.name}</strong>
+                <strong>{workspaceName}</strong>
               </div>
+              {renamingWorkspace ? (
+                <form className="workspace-rename-form" onSubmit={renameWorkspace}>
+                  <label htmlFor="workspace-name">Workspace name</label>
+                  <input
+                    id="workspace-name"
+                    value={workspaceDraft}
+                    onChange={(event) => setWorkspaceDraft(event.target.value)}
+                    minLength={2}
+                    maxLength={100}
+                    autoFocus
+                    required
+                  />
+                  {workspaceError && <span role="alert">{workspaceError}</span>}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWorkspaceDraft(workspaceName);
+                        setWorkspaceError("");
+                        setRenamingWorkspace(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={workspaceSaving}>
+                      {workspaceSaving ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button
+                  className="account-action"
+                  type="button"
+                  onClick={() => {
+                    setWorkspaceDraft(workspaceName);
+                    setWorkspaceError("");
+                    setRenamingWorkspace(true);
+                  }}
+                >
+                  Rename workspace
+                </button>
+              )}
               <button className="account-signout" type="button" onClick={() => void logout()}>
                 Sign out
               </button>
