@@ -345,10 +345,17 @@ status: pending_verification | active | disabled
 emailVerifiedAt
 passwordChangedAt
 authVersion: integer starting at 1
+systemRole: superadmin | null
 ```
 
 `authVersion` invalidates all sessions after reset, logout-all, or disable without
 waiting for session cleanup.
+
+`systemRole` is not an organization role. Public registration cannot assign it,
+and ordinary organization administrators do not inherit it. The one superadmin
+account is provisioned from the server with `npm run admin:provision`, signs in
+through the normal password/session path, and is redirected to the read-only
+`/admin` console. It does not create a personal organization or workspace.
 
 `sessions` additions:
 

@@ -6,6 +6,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "admin:provision": "node scripts/provision-superadmin.mjs",
     "audio:process": "node tools/audio-intelligence/run.mjs",
     "dev": "next dev",
     "build": "next build && node scripts/prepare-standalone.mjs",

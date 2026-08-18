@@ -54,6 +54,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         passwordHash,
         displayName,
         status: "active",
+        systemRole: null,
         emailVerifiedAt: now,
         passwordChangedAt: now,
         authVersion: 1,
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     await ensurePersonalHierarchy(userId, displayName, organizationName);
     const token = await createSession(
-      { id: userId, email, displayName, authVersion: 1 },
+      { id: userId, email, displayName, authVersion: 1, systemRole: null },
       request,
     );
     const response = NextResponse.json({ ok: true }, { status: 201 });

@@ -5,6 +5,9 @@ import { ObjectId } from "mongodb";
 
 import { ensureDbIndexes, getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
+import { isSuperAdminUser, type SystemRole } from "./system-role";
+
+export { isSuperAdminUser } from "./system-role";
 
 const IDLE_MS = 7 * 24 * 60 * 60 * 1_000;
 const ABSOLUTE_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -15,6 +18,7 @@ export interface SessionUser {
   email: string;
   displayName: string;
   authVersion: number;
+  systemRole: SystemRole;
 }
 
 export function hashToken(token: string): string {
@@ -140,6 +144,7 @@ export async function getSessionUserByToken(token?: string): Promise<SessionUser
     email: user.email,
     displayName: user.displayName,
     authVersion: user.authVersion,
+    systemRole: user.systemRole === "superadmin" ? "superadmin" : null,
   };
 }
 

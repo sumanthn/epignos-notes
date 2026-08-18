@@ -34,14 +34,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as { error?: string; redirectTo?: string };
 
       if (!response.ok) {
         setError(data.error || "Something went wrong. Please try again.");
         return;
       }
 
-      router.push("/workspace");
+      router.push(data.redirectTo || "/workspace");
       router.refresh();
     } catch {
       setError("EpiNote is unreachable. Check your connection and try again.");

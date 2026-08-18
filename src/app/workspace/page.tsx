@@ -3,7 +3,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { WorkspaceApp } from "@/components/WorkspaceApp";
-import { getSessionUserByToken, sessionCookieName } from "@/lib/session";
+import {
+  getSessionUserByToken,
+  isSuperAdminUser,
+  sessionCookieName,
+} from "@/lib/session";
 import { getWorkspacePayload } from "@/lib/workspace";
 
 export const metadata: Metadata = { title: "Workspace" };
@@ -14,6 +18,7 @@ export default async function WorkspacePage() {
   const user = await getSessionUserByToken(cookieStore.get(sessionCookieName())?.value);
 
   if (!user) redirect("/login");
+  if (isSuperAdminUser(user)) redirect("/admin");
 
   const workspace = await getWorkspacePayload(user);
   return (

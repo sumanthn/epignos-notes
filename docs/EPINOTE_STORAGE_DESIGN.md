@@ -134,6 +134,7 @@ emailNormalized
 passwordHash
 displayName
 status: pending_verification | active | disabled
+systemRole: superadmin | null
 emailVerifiedAt
 passwordChangedAt
 authVersion
@@ -148,11 +149,18 @@ Rules:
 - Email normalization is trim plus lowercase.
 - Password hashes use Argon2id and are excluded from normal projections.
 - Disabling a user revokes sessions but preserves note attribution.
+- `systemRole` is a platform role, separate from organization membership roles.
+- Public registration always stores a null platform role. A superadmin is created
+  only by the server-side provisioning command.
+- Exactly one user may hold the `superadmin` platform role. The account is for
+  read-only operational visibility and does not receive tenant membership or
+  note-content access implicitly.
 
 Indexes:
 
 ```text
 unique { emailNormalized: 1 }
+unique { systemRole: 1 } partial: systemRole = superadmin
        { status: 1, updatedAt: -1 }
 ```
 

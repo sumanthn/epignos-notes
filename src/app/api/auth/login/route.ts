@@ -34,13 +34,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    await ensurePersonalHierarchy(user._id, user.displayName);
+    const isSuperAdmin = user.systemRole === "superadmin";
+    if (!isSuperAdmin) {
+      await ensurePersonalHierarchy(user._id, user.displayName);
+    }
     const token = await createSession(
       {
         id: user._id,
         email: user.email,
         displayName: user.displayName,
         authVersion: user.authVersion,
+        systemRole: isSuperAdmin ? "superadmin" : null,
       },
       request,
     );
@@ -49,7 +53,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { $set: { lastLoginAt: new Date(), updatedAt: new Date() } },
     );
 
-    const response = NextResponse.json({ ok: true });
+    const response = NextResponse.json({
+      ok: true,
+      redirectTo: isSuperAdmin ? "/admin" : "/workspace",
+    });
     attachSessionCookie(response, token);
     return response;
   } catch (error) {

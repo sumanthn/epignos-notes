@@ -40,6 +40,12 @@ async function createIndexes(): Promise<void> {
     db.collection("users").createIndexes([
       { key: { emailNormalized: 1 }, name: "users_email_unique", unique: true },
       { key: { status: 1, updatedAt: -1 }, name: "users_status_updated" },
+      {
+        key: { systemRole: 1 },
+        name: "users_single_superadmin",
+        unique: true,
+        partialFilterExpression: { systemRole: "superadmin" },
+      },
     ]),
     db.collection("sessions").createIndexes([
       { key: { tokenHash: 1 }, name: "sessions_token_unique", unique: true },

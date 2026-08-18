@@ -436,3 +436,20 @@ capsule, including landing, authentication, workspace, and illustrative preview
 surfaces. Browser page titles also include `EpiNote Beta`. The marker is a quiet
 release-state label within the existing flat Paper, Ink, and Cobalt theme; it is
 not a logo, gradient, promotional banner, or replacement product name.
+
+## 2026-08-18: read-only superadmin operations console
+
+EpiNote has one dedicated platform account with `systemRole: superadmin`. The
+role is deliberately separate from organization membership, cannot be requested
+through public registration, and is protected by a unique partial MongoDB index
+that permits only one holder. Provisioning refuses to promote an existing user
+or replace a different superadmin implicitly.
+
+The account follows the normal Argon2id and server-session authentication path,
+but login goes directly to `/admin` and does not create tenant data. The first
+console is read-only: it shows aggregate user, session, organization, workspace,
+book, note, AI-job, and MongoDB footprint metrics plus limited recent-account
+metadata. It exposes no note bodies, password hashes, session tokens,
+impersonation, role editing, or destructive controls. Unauthenticated requests
+redirect to login; authenticated users without the exact platform role receive
+a not-found response.
