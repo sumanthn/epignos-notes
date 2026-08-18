@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { AuthForm } from "@/components/AuthForm";
+import { ProductWordmark } from "@/components/ProductWordmark";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 export default function LoginPage() {
   return (
     <main className="auth-shell">
-      <Link className="wordmark auth-wordmark" href="/">EpiNote</Link>
+      <ProductWordmark className="auth-wordmark" href="/" />
       <section className="auth-card">
         <p className="eyebrow">Welcome back</p>
         <h1>Sign in to your notes</h1>

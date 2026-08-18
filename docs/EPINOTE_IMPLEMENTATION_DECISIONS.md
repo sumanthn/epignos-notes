@@ -427,3 +427,12 @@ YouTube cookies and OpenRouter credentials remain server-only secrets. Cookie
 files must be owner-readable only and must never be committed or staged through
 `/tmp`. Audio above the current 25 MB transcription boundary fails explicitly;
 chunking will be added only when a real longer recording requires it.
+
+## 2026-08-18: beta deployment identity
+
+The current public deployment is explicitly labeled `EpiNote Beta`. Every
+visible product wordmark carries the same small cobalt-outline `BETA` superscript
+capsule, including landing, authentication, workspace, and illustrative preview
+surfaces. Browser page titles also include `EpiNote Beta`. The marker is a quiet
+release-state label within the existing flat Paper, Ink, and Cobalt theme; it is
+not a logo, gradient, promotional banner, or replacement product name.

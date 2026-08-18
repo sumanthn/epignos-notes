@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ProductWordmark } from "@/components/ProductWordmark";
 import type { WorkspacePayload } from "@/lib/workspace";
 
 type Note = WorkspacePayload["notes"][number];
@@ -1432,7 +1433,7 @@ export function WorkspaceApp({
     <main className="workspace-shell">
       <header className="workspace-topbar">
         <div className="workspace-identity">
-          <span className="wordmark workspace-wordmark">EpiNote</span>
+          <ProductWordmark className="workspace-wordmark" />
           <span className="topbar-divider" />
           {renamingWorkspace ? (
             <form className="workspace-inline-rename" onSubmit={renameWorkspace}>

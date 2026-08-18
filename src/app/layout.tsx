@@ -4,8 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "EpiNote — Notes that become knowledge",
-    template: "%s · EpiNote",
+    default: "EpiNote Beta — Notes that become knowledge",
+    template: "%s · EpiNote Beta",
   },
   description: "A simple, intelligent workspace for notes and ideas.",
 };

@@ -30,7 +30,8 @@ a { color: inherit; }
 
 :focus-visible { outline: 3px solid rgba(49, 92, 245, 0.28); outline-offset: 2px; }
 
-.wordmark { color: var(--ink); font-size: 1.2rem; font-weight: 750; letter-spacing: -0.04em; text-decoration: none; }
+.wordmark { display: inline-flex; align-items: flex-start; gap: 0.32em; color: var(--ink); font-size: 1.2rem; font-weight: 750; letter-spacing: -0.04em; line-height: 1; text-decoration: none; white-space: nowrap; }
+.wordmark-beta { position: relative; top: -0.2em; padding: 0.2em 0.42em; border: 1px solid #cbd7ff; border-radius: 999px; background: #f3f6ff; color: #4163dc; font-size: 0.42em; font-weight: 800; letter-spacing: 0.09em; line-height: 1.1; text-transform: uppercase; }
 .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border: 1px solid var(--cobalt); border-radius: 10px; background: var(--cobalt); color: white; font-weight: 680; text-decoration: none; cursor: pointer; transition: background 150ms ease, border-color 150ms ease, transform 150ms ease; }
 .button:hover { background: var(--cobalt-dark); border-color: var(--cobalt-dark); }
 .button:active { transform: translateY(1px); }
@@ -52,7 +53,7 @@ a { color: inherit; }
 .hero-note { margin-top: 20px; color: var(--muted); font-size: 0.84rem; }
 .product-frame { width: min(1120px, calc(100% - 40px)); min-height: 570px; margin: 0 auto 90px; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
 .preview-topbar { height: 62px; display: grid; grid-template-columns: 220px 1fr 220px; align-items: center; padding: 0 24px; border-bottom: 1px solid var(--border); }
-.preview-brand { font-weight: 750; }
+.preview-brand { font-size: 0.92rem; font-weight: 750; }
 .preview-search { width: min(410px, 100%); justify-self: center; padding: 10px 16px; border: 1px solid var(--border); border-radius: 9px; color: #a0a7b4; font-size: 0.85rem; }
 .preview-avatar { width: 34px; height: 34px; justify-self: end; display: grid; place-items: center; border-radius: 50%; background: var(--selected); color: var(--cobalt); font-weight: 700; }
 .preview-body { min-height: 508px; display: grid; grid-template-columns: 260px 1fr; }

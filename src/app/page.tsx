@@ -1,12 +1,12 @@
 import Link from "next/link";
 
+import { ProductWordmark } from "@/components/ProductWordmark";
+
 export default function LandingPage() {
   return (
     <main className="landing-shell">
       <nav className="landing-nav" aria-label="Main navigation">
-        <Link className="wordmark" href="/">
-          EpiNote
-        </Link>
+        <ProductWordmark href="/" />
         <div className="landing-actions">
           <Link className="text-link" href="/login">
             Sign in
@@ -37,7 +37,7 @@ export default function LandingPage() {
 
       <section className="product-frame" aria-label="EpiNote workspace preview">
         <div className="preview-topbar">
-          <span className="preview-brand">EpiNote</span>
+          <ProductWordmark className="preview-brand" />
           <span className="preview-search">Search your notes</span>
           <span className="preview-avatar">S</span>
         </div>
