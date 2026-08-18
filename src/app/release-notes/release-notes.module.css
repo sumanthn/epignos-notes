@@ -1,0 +1,26 @@
+.shell { min-height: 100vh; background: #f7f8fa; }
+.topbar { height: 66px; padding: 0 max(24px, calc((100vw - 940px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--border); background: #fff; }
+.topbar > a:last-child { color: #5b687d; font-size: 0.76rem; font-weight: 650; text-decoration: none; }
+.topbar > a:last-child:hover { color: var(--cobalt); }
+.page { width: min(940px, calc(100% - 40px)); margin: 0 auto; padding: 68px 0 90px; }
+.intro { margin-bottom: 54px; }
+.intro p { margin: 0 0 12px; color: #6476af; font-size: 0.65rem; font-weight: 780; letter-spacing: 0.13em; text-transform: uppercase; }
+.intro h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3rem, 7vw, 5.3rem); font-weight: 500; letter-spacing: -0.05em; line-height: 1; }
+.intro span { display: block; margin-top: 16px; color: #707c90; font-size: 0.88rem; }
+.timeline { border-top: 1px solid #dce1e8; }
+.release { padding: 35px 0 40px; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 42px; border-bottom: 1px solid #dce1e8; }
+.release aside { display: flex; align-items: flex-start; flex-direction: column; gap: 10px; }
+.release time { color: #7c8798; font-size: 0.7rem; }
+.release aside span { padding: 4px 7px; border: 1px solid #cbd7ff; border-radius: 999px; background: #f1f5ff; color: #4061c6; font-size: 0.56rem; font-weight: 780; letter-spacing: 0.07em; text-transform: uppercase; }
+.release h2 { margin: -4px 0 19px; color: #283347; font-family: Georgia, "Times New Roman", serif; font-size: 1.55rem; font-weight: 550; letter-spacing: -0.025em; }
+.release ul { margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; list-style: none; }
+.release li { position: relative; padding-left: 19px; color: #5f6b7e; font-size: 0.78rem; line-height: 1.55; }
+.release li::before { position: absolute; top: 0.7em; left: 1px; width: 6px; height: 6px; border-radius: 50%; background: #8297df; content: ""; }
+
+@media (max-width: 680px) {
+  .topbar { padding-inline: 16px; }
+  .page { width: min(100% - 30px, 940px); padding-top: 48px; }
+  .intro { margin-bottom: 38px; }
+  .release { grid-template-columns: 1fr; gap: 20px; }
+  .release aside { align-items: center; flex-direction: row; }
+}

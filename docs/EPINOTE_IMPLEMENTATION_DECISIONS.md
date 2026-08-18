@@ -474,3 +474,10 @@ them through `open`, `in_progress`, `resolved`, or `closed`. Status changes stor
 the handling admin and timestamps. The admin API returns not-found to ordinary
 users, accepts only the defined status values, and provides no report deletion,
 impersonation, tenant mutation, or note access.
+
+Help and change visibility remain equally direct. A separate Help button in the
+workspace opens a short guide to capture, books, AI review, and feedback. It
+links to a public, static `/release-notes` page maintained with the application
+source. Release notes describe shipped user-visible behavior only; they do not
+come from MongoDB, require an editor/admin subsystem, or expose internal
+deployment details and secrets.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { HelpButton } from "@/components/HelpButton";
 import { ProductWordmark } from "@/components/ProductWordmark";
 import type { WorkspacePayload } from "@/lib/workspace";
 
@@ -1486,6 +1487,7 @@ export function WorkspaceApp({
           <span className={`save-chip ${saveState === "Save failed" ? "failed" : ""}`}>
             {saveState === "Saved" ? "Saved automatically" : saveState}
           </span>
+          <HelpButton />
           <FeedbackButton />
           <div className="notification-center">
             <button
