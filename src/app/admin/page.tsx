@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { AdminSignOutButton } from "@/components/AdminSignOutButton";
+import { AdminFeedbackQueue } from "@/components/AdminFeedbackQueue";
 import { ProductWordmark } from "@/components/ProductWordmark";
 import { getAdminDashboard } from "@/lib/admin";
 import {
@@ -116,6 +117,19 @@ export default async function AdminPage() {
             value={formatNumber(dashboard.ai.totalJobs)}
             detail={`${formatNumber(dashboard.ai.jobsLast30Days)} started in 30 days`}
           />
+          <MetricCard
+            label="Open requests"
+            value={formatNumber(dashboard.feedback.pending)}
+            detail={`${formatNumber(dashboard.feedback.total)} submitted in total`}
+          />
+        </section>
+
+        <section className={`${styles.panel} ${styles.feedbackPanel}`}>
+          <header>
+            <div><p>User voice</p><h2>Feedback queue</h2></div>
+            <span>{dashboard.feedback.pending} need attention</span>
+          </header>
+          <AdminFeedbackQueue initialItems={dashboard.feedback.recent} />
         </section>
 
         <div className={styles.twoColumn}>

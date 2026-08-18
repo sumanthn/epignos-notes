@@ -446,10 +446,31 @@ that permits only one holder. Provisioning refuses to promote an existing user
 or replace a different superadmin implicitly.
 
 The account follows the normal Argon2id and server-session authentication path,
-but login goes directly to `/admin` and does not create tenant data. The first
-console is read-only: it shows aggregate user, session, organization, workspace,
-book, note, AI-job, and MongoDB footprint metrics plus limited recent-account
-metadata. It exposes no note bodies, password hashes, session tokens,
-impersonation, role editing, or destructive controls. Unauthenticated requests
-redirect to login; authenticated users without the exact platform role receive
-a not-found response.
+but login goes directly to `/admin` and does not create tenant data. The console
+is read-only for application and tenant records: it shows aggregate user,
+session, organization, workspace, book, note, AI-job, and MongoDB footprint
+metrics plus limited recent-account metadata. Feedback status is the only
+mutable operational field. The console exposes no note bodies, password hashes,
+session tokens, impersonation, role editing, tenant mutation, or destructive
+controls. Unauthenticated requests redirect to login; authenticated users
+without the exact platform role receive a not-found response.
+
+## 2026-08-18: first-party feedback queue
+
+Signed-in workspace users can submit either a bug or feature request through a
+small modal in the main top bar. A report contains a short title, bounded
+description, source path, and internal user, organization, and workspace
+references. It does not copy the user's email, note contents, browser history,
+user agent, screenshot, password, session data, or provider credentials. The UI
+also warns users not to paste sensitive information into the description.
+
+Submissions are stored in one `feedbackRequests` collection and limited to ten
+per user per hour. The user receives a compact private reference number. No
+email provider, external issue tracker, attachment service, queue, or background
+worker is introduced for this slice.
+
+The exact platform superadmin can view the latest reports in `/admin` and move
+them through `open`, `in_progress`, `resolved`, or `closed`. Status changes store
+the handling admin and timestamps. The admin API returns not-found to ordinary
+users, accepts only the defined status values, and provides no report deletion,
+impersonation, tenant mutation, or note access.

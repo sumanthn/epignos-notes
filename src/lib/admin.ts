@@ -3,6 +3,11 @@ import {
   normalizedDatabaseFootprint,
   type DatabaseFootprint,
 } from "./admin-values";
+import {
+  isFeedbackStatus,
+  isFeedbackType,
+  type AdminFeedbackItem,
+} from "./feedback";
 
 export type AdminDashboard = {
   generatedAt: string;
@@ -26,6 +31,11 @@ export type AdminDashboard = {
     totalJobs: number;
     jobsLast30Days: number;
     byStatus: Array<{ status: string; count: number }>;
+  };
+  feedback: {
+    total: number;
+    pending: number;
+    recent: AdminFeedbackItem[];
   };
   database: DatabaseFootprint | null;
   recentUsers: Array<{
@@ -73,6 +83,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     totalAiJobs,
     aiJobsLast30Days,
     aiStatusCounts,
+    totalFeedback,
+    pendingFeedback,
+    recentFeedback,
     recentUsers,
     database,
   ] = await Promise.all([
@@ -101,6 +114,80 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
         { $sort: { count: -1, _id: 1 } },
       ])
       .toArray(),
+    db.collection("feedbackRequests").countDocuments(),
+    db.collection("feedbackRequests").countDocuments({
+      status: { $in: ["open", "in_progress"] },
+    }),
+    db.collection("feedbackRequests").aggregate<{
+      _id: import("mongodb").ObjectId;
+      type: unknown;
+      status: unknown;
+      title: unknown;
+      description: unknown;
+      contextPath: unknown;
+      createdAt: unknown;
+      updatedAt: unknown;
+      reporterName?: unknown;
+      organizationName?: unknown;
+      workspaceName?: unknown;
+    }>([
+      { $sort: { createdAt: -1 } },
+      { $limit: 50 },
+      {
+        $lookup: {
+          from: "users",
+          let: { reporterId: "$userId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$reporterId"] } } },
+            { $project: { _id: 0, displayName: 1 } },
+          ],
+          as: "reporterRows",
+        },
+      },
+      {
+        $lookup: {
+          from: "organizations",
+          let: { tenantId: "$organizationId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$tenantId"] } } },
+            { $project: { _id: 0, name: 1 } },
+          ],
+          as: "organizationRows",
+        },
+      },
+      {
+        $lookup: {
+          from: "workspaces",
+          let: { tenantWorkspaceId: "$workspaceId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$tenantWorkspaceId"] } } },
+            { $project: { _id: 0, name: 1 } },
+          ],
+          as: "workspaceRows",
+        },
+      },
+      {
+        $set: {
+          reporterName: { $getField: { field: "displayName", input: { $first: "$reporterRows" } } },
+          organizationName: { $getField: { field: "name", input: { $first: "$organizationRows" } } },
+          workspaceName: { $getField: { field: "name", input: { $first: "$workspaceRows" } } },
+        },
+      },
+      {
+        $project: {
+          type: 1,
+          status: 1,
+          title: 1,
+          description: 1,
+          contextPath: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          reporterName: 1,
+          organizationName: 1,
+          workspaceName: 1,
+        },
+      },
+    ]).toArray(),
     db
       .collection("users")
       .find({})
@@ -143,6 +230,23 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       byStatus: aiStatusCounts.map((item) => ({
         status: typeof item._id === "string" ? item._id : "unknown",
         count: item.count,
+      })),
+    },
+    feedback: {
+      total: totalFeedback,
+      pending: pendingFeedback,
+      recent: recentFeedback.map((item) => ({
+        id: item._id.toHexString(),
+        type: isFeedbackType(item.type) ? item.type : "bug",
+        status: isFeedbackStatus(item.status) ? item.status : "open",
+        title: typeof item.title === "string" ? item.title : "Untitled report",
+        description: typeof item.description === "string" ? item.description : "No description supplied.",
+        contextPath: typeof item.contextPath === "string" ? item.contextPath : "/workspace",
+        reporterName: typeof item.reporterName === "string" ? item.reporterName : "Unknown user",
+        organizationName: typeof item.organizationName === "string" ? item.organizationName : "Unknown organization",
+        workspaceName: typeof item.workspaceName === "string" ? item.workspaceName : "Unknown workspace",
+        createdAt: dateValue(item.createdAt) ?? now.toISOString(),
+        updatedAt: dateValue(item.updatedAt) ?? now.toISOString(),
       })),
     },
     database,

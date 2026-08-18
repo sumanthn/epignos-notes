@@ -205,5 +205,19 @@ async function createIndexes(): Promise<void> {
         name: "note_revisions_navigation",
       },
     ]),
+    db.collection("feedbackRequests").createIndexes([
+      {
+        key: { status: 1, updatedAt: -1 },
+        name: "feedback_status_updated",
+      },
+      {
+        key: { userId: 1, createdAt: -1 },
+        name: "feedback_user_created",
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, createdAt: -1 },
+        name: "feedback_workspace_created",
+      },
+    ]),
   ]);
 }
