@@ -576,3 +576,29 @@ deployed semantic CSS selectors         present
 local and public health                 200, database reachable
 quality gates                           typecheck, lint, build, 27 tests
 ```
+
+## 2026-08-18 EpiNote Beta identity
+
+The public dev-test deployment is now explicitly labeled `EpiNote Beta` across
+landing, authentication, workspace, preview, and browser-title surfaces. The
+wordmark uses a small flat cobalt-outline superscript marker within the existing
+theme.
+
+```text
+commit                                  e8b8dbc
+release                                 /opt/epinote/releases/20260818-beta-label-e8b8dbc
+previous release                        /opt/epinote/releases/20260816-summary-wiki-grounded-v13
+service                                 active
+local and public health                 200, database reachable
+landing beta markers                    2
+landing title                           EpiNote Beta — Notes that become knowledge
+login title                             Sign in · EpiNote Beta
+compiled beta stylesheet                200, text/css
+HTTP redirect                           308 to canonical HTTPS domain
+quality gates                           40 tests, typecheck, lint, production build
+```
+
+The in-app visual browser was unavailable during verification. Rendered HTML,
+compiled CSS, responsive source rules, and production assets were verified; a
+captured desktop/mobile screenshot remains optional visual QA rather than a
+deployment blocker for this small identity marker.
