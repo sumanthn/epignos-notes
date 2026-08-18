@@ -87,3 +87,31 @@ zero organizations created by that account, and the unique partial
 `exists` without rotating the password or creating another account. The live
 application database role successfully returned `dbStats`, so the deployed
 storage panel reports actual database size values.
+
+## 2026-08-18 feedback, Help, and release notes
+
+The combined support release is deployed from commit `d0b7655` at
+`/opt/epinote/releases/20260818-support-d0b7655`. It adds the workspace Help and
+Feedback buttons, public `/release-notes`, tenant-scoped feedback submission,
+and superadmin feedback status management.
+
+Local verification passed 46 tests, ESLint, TypeScript, and the production
+build. Live HTTPS verification used a temporary isolated account and confirmed:
+
+```text
+registration                         201
+workspace with Help + Feedback       200
+invalid feedback                     400
+valid bug submission                 201
+ordinary-user admin status update    404
+superadmin dashboard and report      200
+superadmin status update             200 -> in_progress
+release notes                        200
+```
+
+The stored test report contained no copied email, email-normalized value, note
+ID, or note content. It did contain the expected tenant/user references and the
+handling superadmin after the update. MongoDB exposed the intended status,
+user-rate-limit, and workspace navigation indexes. The temporary report, user,
+session, membership, organization, workspace, and book were removed after the
+assertions; no `feedback-test-*` accounts remain.
