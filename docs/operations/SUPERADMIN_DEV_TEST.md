@@ -57,3 +57,33 @@ credential file.
    exposes note content, password hashes, session tokens, or management actions.
 6. Database footprint failures are visible as unavailable and do not hide the
    remaining metrics.
+
+## 2026-08-18 dev-test verification
+
+Commit `1e5dfaa` was deployed as
+`/opt/epinote/releases/20260818-superadmin-1e5dfaa`. Local verification passed
+43 tests, ESLint, TypeScript, and the production build. Both the internal and
+public HTTPS health endpoints reported a reachable database.
+
+The dedicated `superadmin@epignos.dev` account was created with a generated
+password stored outside the release tree at
+`/home/epignos/.config/epinote/superadmin-login.txt`. The directory is mode
+`0700` and the credential file is mode `0600`. The password was not printed or
+committed.
+
+Authenticated verification against `https://epinote.epignos.dev` confirmed:
+
+```text
+login                           200, redirectTo=/admin
+admin dashboard                 200, expected dashboard sections present
+workspace as superadmin         307 -> /admin
+logout                          200
+admin after logout              307 -> /login
+```
+
+MongoDB integrity checks found exactly one superadmin, zero memberships and
+zero organizations created by that account, and the unique partial
+`users_single_superadmin` index. Running the provisioning command again returned
+`exists` without rotating the password or creating another account. The live
+application database role successfully returned `dbStats`, so the deployed
+storage panel reports actual database size values.
