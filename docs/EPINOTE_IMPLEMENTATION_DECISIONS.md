@@ -407,3 +407,23 @@ Named source works and validated external links remain visibly distinct.
 Every model-proposed label must also occur literally in the summary or saved note
 before it can be stored or displayed. GPT-OSS 120B is the primary profile model,
 with the configured fast and large-note models retained as bounded fallbacks.
+
+## 2026-08-18: audio-intelligence batch checkpoint
+
+The first video-understanding slice is a standalone server-side CLI under
+`tools/audio-intelligence/`. It accepts exactly one HTTPS YouTube video URL,
+downloads only its audio, requests a timestamped Whisper transcript, and asks a
+single analysis model for strict structured output. The server then validates
+every evidence segment ID and chapter time range before accepting the result.
+
+The output remains a private filesystem job containing a manifest, download log,
+normalized audio, source transcript, grounded analysis, and exact provider cost.
+It does not write into notes or MongoDB and does not introduce a web endpoint,
+queue, worker service, vector store, or visual-video processing yet. The next
+vertical slice can wrap this proven batch contract with submission and job-status
+UI without changing its evidence model.
+
+YouTube cookies and OpenRouter credentials remain server-only secrets. Cookie
+files must be owner-readable only and must never be committed or staged through
+`/tmp`. Audio above the current 25 MB transcription boundary fails explicitly;
+chunking will be added only when a real longer recording requires it.
