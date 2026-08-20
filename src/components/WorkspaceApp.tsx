@@ -26,9 +26,10 @@ type OrganizeProposal = {
 };
 type AiJobStatus = "queued" | "processing" | "completed" | "failed" | "applied";
 type BookCardJobStatus = Exclude<AiJobStatus, "applied">;
+type BookConceptJobStatus = Exclude<AiJobStatus, "applied">;
 type AiJobNotification = {
   id: string;
-  type: "organize-note" | "summarize-book-cards";
+  type: "organize-note" | "summarize-book-cards" | "extract-book-concepts";
   noteId: string | null;
   bookId: string;
   title: string;
@@ -67,8 +68,31 @@ type BookCardDeck = {
   generatedAt: string;
   stale: boolean;
 };
+type BookConceptMap = {
+  id: string;
+  bookId: string;
+  overview: string;
+  concepts: Array<{
+    key: string;
+    name: string;
+    kind: "idea" | "person" | "organization" | "place" | "work" | "event";
+    description: string;
+    sourceNoteIds: string[];
+  }>;
+  relations: Array<{
+    fromKey: string;
+    toKey: string;
+    kind: "related_to" | "supports" | "contrasts_with" | "influences" | "part_of" | "precedes";
+    description: string;
+    sourceNoteIds: string[];
+  }>;
+  sourceNotes: Array<{ id: string; title: string }>;
+  model: string;
+  generatedAt: string;
+  stale: boolean;
+};
 
-type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus" | "sparkles" | "bell" | "cards";
+type UiIconName = "library" | "capture" | "book" | "note" | "edit" | "move" | "trash" | "plus" | "sparkles" | "bell" | "cards" | "concepts";
 
 function UiIcon({ name }: { name: UiIconName }) {
   const paths: Record<UiIconName, React.ReactNode> = {
@@ -83,6 +107,7 @@ function UiIcon({ name }: { name: UiIconName }) {
     sparkles: <><path d="m12 3 1.3 3.7L17 8l-3.7 1.3L12 13l-1.3-3.7L7 8l3.7-1.3Z" /><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z" /><path d="M5 13v4M3 15h4" /></>,
     bell: <><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7" /><path d="M10 20h4" /></>,
     cards: <><rect x="4" y="5" width="14" height="15" rx="2" /><path d="M8 2h10a2 2 0 0 1 2 2v12" /><path d="M8 10h6M8 14h4" /></>,
+    concepts: <><circle cx="6" cy="12" r="2.5" /><circle cx="17" cy="6" r="2.5" /><circle cx="18" cy="17" r="2.5" /><path d="m8.2 10.8 6.6-3.6M8.5 13l7 3M17.3 8.5l.5 6" /></>,
   };
 
   return (
@@ -137,6 +162,18 @@ function SummaryFacetGroup({
       <div>{values.map((value) => <span className={`summary-facet ${kind}`} key={value}>{value}</span>)}</div>
     </div>
   );
+}
+
+function conceptRelationLabel(kind: BookConceptMap["relations"][number]["kind"]): string {
+  const labels: Record<BookConceptMap["relations"][number]["kind"], string> = {
+    related_to: "Related to",
+    supports: "Supports",
+    contrasts_with: "Contrasts with",
+    influences: "Influences",
+    part_of: "Part of",
+    precedes: "Precedes",
+  };
+  return labels[kind];
 }
 
 export function WorkspaceApp({
@@ -202,6 +239,11 @@ export function WorkspaceApp({
   const [cardsState, setCardsState] = useState<BookCardsState>("idle");
   const [cardDeck, setCardDeck] = useState<BookCardDeck | null>(null);
   const [cardsError, setCardsError] = useState("");
+  const [conceptsPanelOpen, setConceptsPanelOpen] = useState(false);
+  const [conceptsBookId, setConceptsBookId] = useState<string | null>(null);
+  const [conceptsState, setConceptsState] = useState<BookCardsState>("idle");
+  const [conceptMap, setConceptMap] = useState<BookConceptMap | null>(null);
+  const [conceptsError, setConceptsError] = useState("");
   const [noteSummaryOpen, setNoteSummaryOpen] = useState(false);
   const [noteSummaryState, setNoteSummaryState] = useState<NoteSummaryState>("idle");
   const [noteSummary, setNoteSummary] = useState("");
@@ -213,6 +255,7 @@ export function WorkspaceApp({
   const savingRef = useRef(false);
   const organizePollRef = useRef<number | null>(null);
   const cardsPollRef = useRef<number | null>(null);
+  const conceptsPollRef = useRef<number | null>(null);
 
   useEffect(() => {
     notesRef.current = notes;
@@ -242,6 +285,7 @@ export function WorkspaceApp({
   useEffect(() => () => {
     if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
     if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
+    if (conceptsPollRef.current !== null) window.clearTimeout(conceptsPollRef.current);
   }, []);
 
   const selected = notes.find((note) => note.id === selectedId) ?? null;
@@ -349,13 +393,13 @@ export function WorkspaceApp({
   }, []);
 
   useEffect(() => {
-    if (!organizePanelOpen && !cardsPanelOpen) return;
+    if (!organizePanelOpen && !cardsPanelOpen && !conceptsPanelOpen) return;
 
     function dismissSidePanels(event: PointerEvent) {
       const target = event.target;
       if (
         target instanceof Element &&
-        target.closest(".organize-panel, .cards-panel")
+        target.closest(".organize-panel, .cards-panel, .concepts-panel")
       ) {
         return;
       }
@@ -377,14 +421,25 @@ export function WorkspaceApp({
         setCardsError("");
         setCardsBookId(null);
       }
+      if (conceptsPanelOpen) {
+        if (conceptsPollRef.current !== null) window.clearTimeout(conceptsPollRef.current);
+        conceptsPollRef.current = null;
+        setConceptsPanelOpen(false);
+        setConceptsState("idle");
+        setConceptMap(null);
+        setConceptsError("");
+        setConceptsBookId(null);
+      }
     }
 
     function dismissSidePanelsWithKeyboard(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
       if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
+      if (conceptsPollRef.current !== null) window.clearTimeout(conceptsPollRef.current);
       organizePollRef.current = null;
       cardsPollRef.current = null;
+      conceptsPollRef.current = null;
       setOrganizePanelOpen(false);
       setOrganizeState("idle");
       setOrganizeProposal(null);
@@ -394,6 +449,11 @@ export function WorkspaceApp({
       setCardDeck(null);
       setCardsError("");
       setCardsBookId(null);
+      setConceptsPanelOpen(false);
+      setConceptsState("idle");
+      setConceptMap(null);
+      setConceptsError("");
+      setConceptsBookId(null);
     }
 
     document.addEventListener("pointerdown", dismissSidePanels, true);
@@ -402,7 +462,7 @@ export function WorkspaceApp({
       document.removeEventListener("pointerdown", dismissSidePanels, true);
       document.removeEventListener("keydown", dismissSidePanelsWithKeyboard);
     };
-  }, [cardsPanelOpen, organizePanelOpen]);
+  }, [cardsPanelOpen, conceptsPanelOpen, organizePanelOpen]);
 
   useEffect(() => {
     if (!selected) return;
@@ -531,6 +591,7 @@ export function WorkspaceApp({
   async function chooseNote(noteId: string) {
     if (noteId === selectedId) {
       if (cardsPanelOpen) closeCardsPanel();
+      if (conceptsPanelOpen) closeConceptsPanel();
       if (noteSummaryOpen) closeNoteSummary();
       return;
     }
@@ -546,6 +607,7 @@ export function WorkspaceApp({
     setPreview(false);
     closeOrganizePanel();
     closeCardsPanel();
+    closeConceptsPanel();
     closeNoteSummary();
   }
 
@@ -580,6 +642,7 @@ export function WorkspaceApp({
       setPreview(false);
       closeOrganizePanel();
       closeCardsPanel();
+      closeConceptsPanel();
       closeNoteSummary();
     } catch {
       setError("EpiNote is unreachable. Try again when your connection returns.");
@@ -594,6 +657,7 @@ export function WorkspaceApp({
     if (bookId === expandedBookId) {
       setExpandedBookId(null);
       if (cardsPanelOpen) closeCardsPanel();
+      if (conceptsPanelOpen) closeConceptsPanel();
       if (noteSummaryOpen) closeNoteSummary();
       return;
     }
@@ -604,6 +668,7 @@ export function WorkspaceApp({
     }
     if (dirty && selected && !(await saveNote(selected))) return;
     closeCardsPanel();
+    closeConceptsPanel();
     closeNoteSummary();
     setActiveBookId(bookId);
     setExpandedBookId(bookId);
@@ -1004,6 +1069,7 @@ export function WorkspaceApp({
         setPreview(false);
         closeOrganizePanel();
       }
+      if (conceptsBookId === book.id) closeConceptsPanel();
     } catch {
       setError("EpiNote is unreachable. The book was not deleted.");
     } finally {
@@ -1275,6 +1341,7 @@ export function WorkspaceApp({
     if (dirty && selected && !(await saveNote(selected))) return;
     setBookActionId(null);
     closeOrganizePanel();
+    closeConceptsPanel();
     closeNoteSummary();
     setCardsPanelOpen(true);
     setCardsBookId(book.id);
@@ -1330,6 +1397,121 @@ export function WorkspaceApp({
     setError("");
   }
 
+  function closeConceptsPanel() {
+    if (conceptsPollRef.current !== null) {
+      window.clearTimeout(conceptsPollRef.current);
+      conceptsPollRef.current = null;
+    }
+    setConceptsPanelOpen(false);
+    setConceptsState("idle");
+    setConceptMap(null);
+    setConceptsError("");
+    setConceptsBookId(null);
+  }
+
+  function scheduleConceptsPoll(bookId: string) {
+    if (conceptsPollRef.current !== null) window.clearTimeout(conceptsPollRef.current);
+    conceptsPollRef.current = window.setTimeout(() => void loadBookConcepts(bookId), 2_500);
+  }
+
+  async function loadBookConcepts(bookId: string) {
+    try {
+      const response = await fetch(`/api/books/${bookId}/concepts`, { cache: "no-store" });
+      const data = (await response.json()) as {
+        error?: string;
+        map?: BookConceptMap | null;
+        job?: { status: BookConceptJobStatus; error: string | null } | null;
+      };
+      if (data.map) {
+        setConceptMap(data.map);
+        setConceptsState("ready");
+      }
+      if (!response.ok && response.status !== 202) {
+        setConceptsError(data.error || data.job?.error || "Unable to load concepts.");
+        setConceptsState(data.map ? "ready" : "error");
+        conceptsPollRef.current = null;
+        return;
+      }
+      if (data.job?.status === "failed") {
+        setConceptsError(data.job.error || "Concept generation failed.");
+        setConceptsState(data.map ? "ready" : "error");
+        conceptsPollRef.current = null;
+        void loadAiJobs();
+        return;
+      }
+      if (data.job?.status === "queued" || data.job?.status === "processing") {
+        if (!data.map) setConceptsState("loading");
+        scheduleConceptsPoll(bookId);
+        return;
+      }
+      conceptsPollRef.current = null;
+      if (!data.map) setConceptsState("empty");
+      void loadAiJobs();
+    } catch {
+      scheduleConceptsPoll(bookId);
+    }
+  }
+
+  async function openBookConcepts(book: WorkspacePayload["books"][number]) {
+    if (dirty && selected && !(await saveNote(selected))) return;
+    setBookActionId(null);
+    closeOrganizePanel();
+    closeCardsPanel();
+    closeNoteSummary();
+    setConceptsPanelOpen(true);
+    setConceptsBookId(book.id);
+    setConceptsState("loading");
+    setConceptMap(null);
+    setConceptsError("");
+    await loadBookConcepts(book.id);
+  }
+
+  async function generateBookConcepts(bookId: string) {
+    setConceptsState("loading");
+    setConceptsError("");
+    try {
+      const response = await fetch(`/api/books/${bookId}/concepts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        map?: BookConceptMap | null;
+        job?: { status: BookConceptJobStatus; error: string | null } | null;
+      };
+      if (!response.ok && response.status !== 202) {
+        setConceptsError(data.error || "Unable to generate concepts.");
+        setConceptsState(conceptMap ? "ready" : "error");
+        return;
+      }
+      if (data.map) {
+        setConceptMap(data.map);
+        setConceptsState("ready");
+        return;
+      }
+      setBackgroundMessage("Book concepts are being generated in the background.");
+      void loadAiJobs();
+      scheduleConceptsPoll(bookId);
+    } catch {
+      setConceptsError("EpiNote cannot reach the AI service right now.");
+      setConceptsState(conceptMap ? "ready" : "error");
+    }
+  }
+
+  async function openConceptSource(noteId: string) {
+    const note = notesRef.current.find((item) => item.id === noteId);
+    if (!note) return;
+    if (dirty && selected && !(await saveNote(selected))) return;
+    closeConceptsPanel();
+    setActiveBookId(note.bookId);
+    setExpandedBookId(note.bookId);
+    setSelectedId(note.id);
+    setDirty(false);
+    setPreview(true);
+    setError("");
+  }
+
   async function applyOrganization() {
     if (!selected || !organizeProposal || organizeState === "applying") return;
     if (
@@ -1375,6 +1557,7 @@ export function WorkspaceApp({
   const avatar = userName.trim().charAt(0).toUpperCase() || "E";
   const activeBook = books.find((book) => book.id === activeBookId) ?? null;
   const cardsBook = books.find((book) => book.id === cardsBookId) ?? null;
+  const conceptsBook = books.find((book) => book.id === conceptsBookId) ?? null;
   const activeAiJobCount = aiJobs.filter(
     (job) => job.status === "queued" || job.status === "processing",
   ).length;
@@ -1403,6 +1586,14 @@ export function WorkspaceApp({
       if (book) {
         setNotificationsOpen(false);
         await openBookCards(book);
+      }
+      return;
+    }
+    if (job.type === "extract-book-concepts") {
+      const book = books.find((item) => item.id === job.bookId);
+      if (book) {
+        setNotificationsOpen(false);
+        await openBookConcepts(book);
       }
       return;
     }
@@ -1436,6 +1627,24 @@ export function WorkspaceApp({
       (candidate) => candidate.type === "summarize-book-cards" && candidate.bookId === bookId,
     );
     if (!job) return { label: "Quick reference", state: "idle" };
+    if (job.status === "completed") return { label: "Ready", state: "ready" };
+    if (job.status === "processing") return { label: "Generating…", state: "processing" };
+    if (job.status === "queued") return { label: "Waiting…", state: "queued" };
+    if (job.status === "failed") return { label: "Try again", state: "failed" };
+    return { label: "Ready", state: "ready" };
+  }
+
+  function bookConceptTreeState(bookId: string): {
+    label: string;
+    state: "idle" | "queued" | "processing" | "ready" | "failed";
+  } {
+    if (conceptsBookId === bookId && conceptMap) {
+      return { label: `${conceptMap.concepts.length} concepts`, state: "ready" };
+    }
+    const job = aiJobs.find(
+      (candidate) => candidate.type === "extract-book-concepts" && candidate.bookId === bookId,
+    );
+    if (!job) return { label: "Ideas and connections", state: "idle" };
     if (job.status === "completed") return { label: "Ready", state: "ready" };
     if (job.status === "processing") return { label: "Generating…", state: "processing" };
     if (job.status === "queued") return { label: "Waiting…", state: "queued" };
@@ -1651,18 +1860,28 @@ export function WorkspaceApp({
                             {job.status === "completed"
                               ? job.type === "summarize-book-cards"
                                 ? "Summary cards ready"
-                                : "Ready to review"
+                                : job.type === "extract-book-concepts"
+                                  ? "Book concepts ready"
+                                  : "Ready to review"
                               : job.status === "applied"
                                 ? "Organization applied"
                               : job.status === "failed"
-                                ? job.error || (job.type === "summarize-book-cards" ? "Card generation failed" : "Organization failed")
+                                ? job.error || (job.type === "summarize-book-cards"
+                                  ? "Card generation failed"
+                                  : job.type === "extract-book-concepts"
+                                    ? "Concept generation failed"
+                                    : "Organization failed")
                                 : job.status === "processing"
                                   ? job.type === "summarize-book-cards"
                                     ? "Building cards in background"
-                                    : "Organizing in background"
+                                    : job.type === "extract-book-concepts"
+                                      ? "Finding concepts in background"
+                                      : "Organizing in background"
                                   : job.type === "summarize-book-cards"
                                     ? "Waiting to build cards"
-                                    : "Waiting to organize"}
+                                    : job.type === "extract-book-concepts"
+                                      ? "Waiting to find concepts"
+                                      : "Waiting to organize"}
                           </em>
                         </span>
                       </button>
@@ -1814,6 +2033,14 @@ export function WorkspaceApp({
                       >
                         <UiIcon name="cards" /> Summary cards
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void openBookConcepts(book)}
+                        disabled={book.noteCount === 0}
+                        title={book.noteCount === 0 ? "Add text to a note first" : "Open this book's concepts"}
+                      >
+                        <UiIcon name="concepts" /> Concepts
+                      </button>
                       <button type="button" onClick={() => beginBookRename(book)}>
                         <UiIcon name="edit" /> Rename
                       </button>
@@ -1845,6 +2072,23 @@ export function WorkspaceApp({
                         <span className="book-summary-copy">
                           <strong>Summary Cards</strong>
                           <small>{book.noteCount === 0 ? "Add notes first" : bookCardTreeState(book.id).label}</small>
+                        </span>
+                        <span className="book-summary-ai">AI</span>
+                      </button>
+                      <button
+                        className={`book-summary-row book-concepts-row ${conceptsPanelOpen && conceptsBookId === book.id ? "selected" : ""} ${bookConceptTreeState(book.id).state}`}
+                        type="button"
+                        onClick={() => {
+                          if (conceptsPanelOpen && conceptsBookId === book.id) closeConceptsPanel();
+                          else void openBookConcepts(book);
+                        }}
+                        disabled={book.noteCount === 0}
+                        title={book.noteCount === 0 ? "Add notes to find concepts" : `Open ${book.name} concepts`}
+                      >
+                        <span className="book-summary-icon"><UiIcon name="concepts" /></span>
+                        <span className="book-summary-copy">
+                          <strong>Concepts</strong>
+                          <small>{book.noteCount === 0 ? "Add notes first" : bookConceptTreeState(book.id).label}</small>
                         </span>
                         <span className="book-summary-ai">AI</span>
                       </button>
@@ -2203,6 +2447,133 @@ export function WorkspaceApp({
                     <span>AI study aid · Check the linked notes for context</span>
                     <button className="button button-secondary button-small" type="button" onClick={() => void generateBookCards(cardsBook.id)}>
                       Refresh cards
+                    </button>
+                  </footer>
+                </div>
+              )}
+            </aside>
+          )}
+          {conceptsPanelOpen && conceptsBook && (
+            <aside className="cards-panel concepts-panel" aria-label={`${conceptsBook.name} concepts`}>
+              <header className="cards-panel-header concepts-panel-header">
+                <div>
+                  <p className="eyebrow">Book intelligence</p>
+                  <h2>{conceptsBook.name}</h2>
+                  <span>Concepts and connections</span>
+                </div>
+                <button type="button" onClick={closeConceptsPanel} aria-label="Close concepts">×</button>
+              </header>
+              <p className="cards-safety concepts-safety">
+                Generated only from this book’s notes. Open a source note to check the original context.
+              </p>
+              {conceptsState === "loading" && !conceptMap && (
+                <div className="cards-panel-state" role="status">
+                  <UiIcon name="concepts" />
+                  <strong>Finding the book’s main concepts…</strong>
+                  <span>You can close this view and keep writing. The bell will notify you when it is ready.</span>
+                </div>
+              )}
+              {conceptsState === "empty" && (
+                <div className="cards-panel-state">
+                  <UiIcon name="concepts" />
+                  <strong>No concept map yet</strong>
+                  <span>Find the important ideas, people, places, works, and connections in {conceptsBook.name}.</span>
+                  <button className="button button-small" type="button" onClick={() => void generateBookConcepts(conceptsBook.id)}>
+                    Generate concepts
+                  </button>
+                </div>
+              )}
+              {conceptsState === "error" && !conceptMap && (
+                <div className="cards-panel-state cards-panel-error" role="alert">
+                  <UiIcon name="concepts" />
+                  <strong>Concepts could not be generated</strong>
+                  <span>{conceptsError}</span>
+                  <button className="button button-secondary button-small" type="button" onClick={() => void generateBookConcepts(conceptsBook.id)}>
+                    Try again
+                  </button>
+                </div>
+              )}
+              {conceptMap && (
+                <div className="cards-deck concepts-deck">
+                  {(conceptMap.stale || conceptsError) && (
+                    <div className="cards-notice" role={conceptsError ? "alert" : "status"}>
+                      <span>{conceptsError || "These concepts are from an earlier version of this book."}</span>
+                      <button type="button" onClick={() => void generateBookConcepts(conceptsBook.id)}>
+                        Refresh
+                      </button>
+                    </div>
+                  )}
+                  <div className="cards-overview concepts-overview">
+                    <span>{conceptMap.concepts.length} concepts · {conceptMap.relations.length} connections · {conceptMap.sourceNotes.length} source notes</span>
+                    <p>{conceptMap.overview}</p>
+                  </div>
+                  <div className="concept-map-grid">
+                    {conceptMap.concepts.map((concept) => (
+                      <article className={`concept-card concept-card-${concept.kind}`} key={concept.key}>
+                        <div className="concept-card-topline">
+                          <span>{concept.kind}</span>
+                          <UiIcon name="concepts" />
+                        </div>
+                        <h3>{concept.name}</h3>
+                        <p>{concept.description}</p>
+                        <div className="concept-sources" aria-label={`Sources for ${concept.name}`}>
+                          {concept.sourceNoteIds.map((noteId) => {
+                            const source = conceptMap.sourceNotes.find((note) => note.id === noteId);
+                            return source ? (
+                              <button
+                                type="button"
+                                key={noteId}
+                                onClick={() => void openConceptSource(noteId)}
+                                title={`Open source note: ${source.title}`}
+                              >
+                                {source.title}
+                              </button>
+                            ) : null;
+                          })}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  {conceptMap.relations.length > 0 && (
+                    <section className="concept-relations" aria-label="Concept connections">
+                      <header>
+                        <p className="eyebrow">Connections</p>
+                        <h3>How these concepts meet</h3>
+                      </header>
+                      <div>
+                        {conceptMap.relations.map((relation, relationIndex) => {
+                          const from = conceptMap.concepts.find((concept) => concept.key.toLocaleLowerCase() === relation.fromKey.toLocaleLowerCase());
+                          const to = conceptMap.concepts.find((concept) => concept.key.toLocaleLowerCase() === relation.toKey.toLocaleLowerCase());
+                          return (
+                            <article key={`${relation.fromKey}-${relation.kind}-${relation.toKey}-${relationIndex}`}>
+                              <p>
+                                <strong>{from?.name ?? relation.fromKey}</strong>
+                                <span>{conceptRelationLabel(relation.kind)}</span>
+                                <strong>{to?.name ?? relation.toKey}</strong>
+                              </p>
+                              <div>
+                                <span>{relation.description}</span>
+                                <span className="concept-sources">
+                                  {relation.sourceNoteIds.map((noteId) => {
+                                    const source = conceptMap.sourceNotes.find((note) => note.id === noteId);
+                                    return source ? (
+                                      <button type="button" key={noteId} onClick={() => void openConceptSource(noteId)}>
+                                        {source.title}
+                                      </button>
+                                    ) : null;
+                                  })}
+                                </span>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+                  <footer className="cards-deck-footer concepts-deck-footer">
+                    <span>AI map · Every concept and connection links to source notes</span>
+                    <button className="button button-secondary button-small" type="button" onClick={() => void generateBookConcepts(conceptsBook.id)}>
+                      Refresh concepts
                     </button>
                   </footer>
                 </div>

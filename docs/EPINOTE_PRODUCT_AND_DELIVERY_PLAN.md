@@ -7,6 +7,11 @@ Detailed MongoDB storage contract:
 
 - `docs/EPINOTE_STORAGE_DESIGN.md`
 
+Detailed plans added after the initial product slice:
+
+- `docs/EPINOTE_AI_FEATURES_ROADMAP.md`
+- `docs/operations/EPINOTE_GCP_BACKUP_PLAN.md`
+
 Detailed authentication contract:
 
 - `docs/EPINOTE_AUTH_DESIGN.md`
@@ -774,14 +779,21 @@ Do not run production user data on the development/test database.
 
 The Contabo disk is storage, not a backup. Before real user data is accepted:
 
-- Run daily authenticated `mongodump` backups.
+- Run authenticated `mongodump` backups every six hours.
 - Encrypt backup archives.
-- Copy backups to storage outside the Contabo server.
-- Retain at least seven daily and four weekly backups initially.
+- Copy backups to a private Google Cloud Storage bucket outside the Contabo
+  account and server.
+- Use a dedicated bucket-scoped upload-only service account.
+- Retain frequent backups for 35 days, weekly checkpoints for 90 days, and
+  monthly checkpoints for 400 days initially.
 - Back up MongoDB data, GridFS, and required deployment configuration.
 - Test `mongorestore` into a separate database at least monthly.
 - Record restore time and failures.
-- Define acceptable recovery point and recovery time before production launch.
+- Target a six-hour recovery point and two-hour recovery time.
+
+The exact credential handling, encryption, retention, failure behavior, and
+restore exercise are defined in `docs/operations/EPINOTE_GCP_BACKUP_PLAN.md`.
+The design is approved but not yet deployed.
 
 Never claim backups work until a restore has been tested.
 
@@ -949,7 +961,8 @@ Exit criteria:
 
 - Diary or calendar dashboard.
 - Analytics dashboard.
-- Visual graph canvas.
+- Unbounded free-form graph canvas; the planned Book Concept Map is a bounded,
+  evidence-backed view over ordinary MongoDB records.
 - Autonomous agents.
 - Separate microservices.
 - Redis or external job queue.
@@ -971,7 +984,7 @@ phase begins:
 3. Public application domain and HTTPS termination choice.
 4. Whether every organization member can access every workspace long term.
 5. Required PDF/office-document ingestion and export priority.
-6. Production backup destination and retention policy.
+6. Final GCS bucket name and European data-residency location.
 7. Production hosting topology after development validation.
 
 Default position: choose the smallest operational option when the decision is

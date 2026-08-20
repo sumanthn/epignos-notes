@@ -2,6 +2,11 @@
 
 Status: one-video vertical slice verified on 2026-08-17
 
+Production disposition: retain this as a private engineering checkpoint only.
+Do not expose the cookie-based downloader as a user-facing ingestion path. The
+approved production inputs and public-YouTube boundary are defined in
+`docs/EPINOTE_AI_FEATURES_ROADMAP.md`.
+
 The first EpiNote Audio Intelligence spike ran entirely on the dev-test server.
 No media or transcript processing ran on the local Mac.
 

@@ -13,8 +13,19 @@ export const metadata: Metadata = {
 const releases = [
   {
     date: "August 20, 2026",
-    title: "Menus and the Library now behave naturally",
+    title: "Book Concepts connect the notes",
     current: true,
+    changes: [
+      "Every Book now has a Concepts collection beside Summary Cards, kept above its ordinary Notes.",
+      "Generate a compact view of the Book’s important ideas, people, organizations, places, works, and events.",
+      "Concepts and their connections link directly to the Notes that support them, so the original context remains one click away.",
+      "Concepts are generated in the background, report progress through the bell, and show when the Book has changed and needs a refresh.",
+    ],
+  },
+  {
+    date: "August 20, 2026",
+    title: "Menus and the Library now behave naturally",
+    current: false,
     changes: [
       "Menus, popovers, and AI panels close when you click elsewhere or press Escape; touch dismissal works the same way.",
       "Click an open Book again to collapse its note tree without changing or closing the Note you are editing.",

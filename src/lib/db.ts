@@ -177,6 +177,23 @@ async function createIndexes(): Promise<void> {
         name: "book_card_decks_navigation",
       },
     ]),
+    db.collection("bookConceptMaps").createIndexes([
+      {
+        key: {
+          organizationId: 1,
+          workspaceId: 1,
+          bookId: 1,
+          sourceHash: 1,
+          promptVersion: 1,
+        },
+        name: "book_concept_maps_source_unique",
+        unique: true,
+      },
+      {
+        key: { organizationId: 1, workspaceId: 1, bookId: 1, createdAt: -1 },
+        name: "book_concept_maps_navigation",
+      },
+    ]),
     db.collection("noteSummaryProfiles").createIndexes([
       {
         key: {

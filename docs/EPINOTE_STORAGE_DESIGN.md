@@ -1,9 +1,9 @@
 # EpiNote Storage Design
 
-Status: proposed storage contract for implementation review
+Status: active storage contract with later-phase sections still proposed
 Database engine: MongoDB Community 8.0
 Development database: `epignos_dev`
-Last updated: 2026-08-16
+Last updated: 2026-08-20
 
 ## 1. Purpose
 
@@ -86,11 +86,19 @@ Created only when their feature phase starts:
 ```text
 aiProposals
 aiJobs
+bookConceptMaps
 concepts
 noteConceptLinks
 ```
 
 Do not create empty future-facing collections merely for architectural symmetry.
+
+`bookConceptMaps` is now active. It stores immutable, AI-derived Book concept
+views keyed by `organizationId`, `workspaceId`, `bookId`, the exact source hash,
+and prompt version. It is disposable derived data: Notes remain canonical, a
+Note change makes the previous view stale, and regeneration creates a new
+snapshot rather than overwriting user content. Canonical `concepts` and
+`noteConceptLinks` remain reserved for the later user-managed concept phase.
 
 Relationship map:
 
@@ -824,6 +832,11 @@ Current local recovery bundle:
 Before production, define recovery targets, automate encrypted off-host backups,
 and regularly restore into a clean target. A backup is not working merely because
 an archive file exists.
+
+The selected GCP destination, six-hour recovery target, credential boundaries,
+retention, and restore exercise are recorded in
+`docs/operations/EPINOTE_GCP_BACKUP_PLAN.md`. That plan is approved but not yet
+deployed.
 
 ## 18. Failure handling
 

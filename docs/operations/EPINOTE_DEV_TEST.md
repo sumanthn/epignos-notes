@@ -1,7 +1,7 @@
 # EpiNote Development/Test Deployment
 
 Status: deployed and verified
-Last updated: 2026-08-16
+Last updated: 2026-08-20
 
 ## Access
 
@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260816-summary-wiki-grounded-v13
-/opt/epinote/current -> /opt/epinote/releases/20260816-summary-wiki-grounded-v13
+/opt/epinote/releases/20260820-book-concepts-v1
+/opt/epinote/current -> /opt/epinote/releases/20260820-book-concepts-v1
 ```
 
 ## Service layout
@@ -681,3 +681,40 @@ The configured in-app browser was unavailable, so visual pointer-path testing
 could not be automated in this session. Source interaction paths, the production
 bundle, responsive styles, service logs, and public assets were verified. The
 previous release remains available for immediate rollback.
+
+## 2026-08-20 grounded Book Concepts
+
+The first Book Concepts slice adds an evidence-first Concepts collection to each
+Book. Generation runs through the existing durable background-job and
+notification flow. The stored map is immutable and keyed to the exact source
+Note revisions/content hashes; editing a source Note leaves the previous map
+readable and marks it stale.
+
+An isolated temporary public account exercised the real HTTPS workflow with one
+Book and two saved Notes. The DeepSeek V4 Pro background job completed, every
+returned concept and relationship citation was constrained to those two Notes,
+and editing one Note changed the API's map state to stale. The temporary user,
+sessions, tenant, Notes, job, map, and one map that completed during an earlier
+aborted test cleanup were removed afterward. Existing user data was not changed.
+
+```text
+release                                  /opt/epinote/releases/20260820-book-concepts-v1
+previous release                         /opt/epinote/releases/20260820-ui-dismiss-v2
+service / nginx / MongoDB                active / active / active
+local and public health                  200, database reachable
+unauthenticated concepts request         401
+background model                         deepseek/deepseek-v4-pro
+generated concepts / relationships       9 / 13
+source Notes / invalid citations         2 / 0
+map after source Note edit               present, stale = true
+temporary users / orphan maps / jobs     0 / 0 / 0
+compiled JavaScript / CSS assets         200 / 200
+known npm vulnerabilities                0
+quality gates                            54 tests, typecheck, lint, production build
+```
+
+The in-app browser was unavailable, so the signed-in pointer-path and visual
+layout could not be automated in this session. The production API workflow,
+authorization boundary, model output validation, persistence, staleness,
+compiled UI assets, services, and public release notes were verified. The prior
+versioned release remains available for immediate rollback.

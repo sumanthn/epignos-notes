@@ -549,3 +549,63 @@ editor, or interfere with autosave. Reopening another Book still saves pending
 work before changing the active context. Short flat-color transitions provide
 spatial continuity, and all new motion is disabled by the user's reduced-motion
 preference.
+
+## 2026-08-20: GCP is the selected off-host backup target
+
+EpiNote will use a private Google Cloud Storage bucket as its primary off-host
+backup destination. The server will create an authenticated MongoDB dump every
+six hours, briefly quiescing only application writes, then package required
+deployment configuration, encrypt the archive before upload, and use unique
+timestamped object names.
+
+A dedicated service account receives only `Storage Object Creator` on the backup
+bucket. It cannot administer the bucket or delete prior archives. Public access
+prevention, uniform bucket-level access, a tested retention policy, prefix-based
+lifecycle rules, safe failure handling, and monthly restore exercises are part of
+the recovery contract. The private recovery key remains off-server.
+
+This is a recorded design decision, not a claim that backups are already active.
+Implementation inputs and the full acceptance test are in
+`docs/operations/EPINOTE_GCP_BACKUP_PLAN.md`.
+
+## 2026-08-20: evidence-backed Book intelligence direction
+
+The next intelligence slice is Book Concepts: an evidence-first index and a
+bounded visual Map over concepts, entities, Notes, and explicit relationships.
+Every generated item cites exact Note/block evidence, carries a source snapshot,
+and becomes stale when source Notes change. Users can accept, reject, rename, and
+merge proposals. Concepts remain ordinary MongoDB records; a graph database is
+not introduced.
+
+Book Index, grounded Ask, and a bounded user-directed Research Assistant follow
+only after the concept workflow succeeds on a real large Book. Research results
+remain separate, cited snapshots until the user explicitly saves selected
+findings into a Note.
+
+Production media intelligence will support user-owned uploads, pasted
+transcripts, creator-authorized captions, and public YouTube URLs through an
+official multimodal provider input. The existing cookie-based `yt-dlp` workflow
+remains a private POC and will not be exposed as the production ingestion path.
+EpiNote will not download or retain arbitrary third-party YouTube media. The
+complete roadmap and delivery gates are in
+`docs/EPINOTE_AI_FEATURES_ROADMAP.md`.
+
+## 2026-08-20: first Book Concepts slice is an immutable grounded view
+
+The first Book Concepts implementation is a Book-level derived snapshot, not a
+canonical knowledge graph. It runs as the existing durable MongoDB-backed job
+type `extract-book-concepts`, uses the configured large-note OpenRouter model,
+and stores validated results in `bookConceptMaps` under the exact Book source
+hash and prompt version.
+
+The UI places a highlighted Concepts collection above ordinary Notes. It shows
+compact colored concept cards, a short overview, explicit relationships, and
+clickable supporting Notes. When any source Note revision changes, the last map
+remains readable but is marked stale until the user refreshes it. AI/provider
+failure is shown through the existing notification flow and never blocks
+writing, autosave, search, or export.
+
+This first slice does not silently merge concepts, modify Notes, create global
+workspace identities, or introduce a canvas, graph database, vector database,
+new worker service, or separate queue. Those capabilities must earn their place
+through real usage of the simpler evidence-first view.
