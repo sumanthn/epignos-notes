@@ -481,3 +481,71 @@ links to a public, static `/release-notes` page maintained with the application
 source. Release notes describe shipped user-visible behavior only; they do not
 come from MongoDB, require an editor/admin subsystem, or expose internal
 deployment details and secrets.
+
+## 2026-08-19: simple-first rich note editor
+
+The default Note remains a blank, distraction-free writing surface. Markdown
+input rules are off by default and stored as a per-browser user preference; with
+them off, leading `#`, `-`, numbers, brackets, and backticks remain ordinary
+text. A user can enable `MD On` from the editor bar to activate Markdown typing
+shortcuts and Markdown-aware plain-text paste.
+
+The editor uses pinned Tiptap 3.30.2 packages rather than browser `execCommand`
+or a custom `contenteditable` implementation. Its compact toolbar supports
+paragraphs, three heading levels, a document reading font, bold, italic,
+underline, five restrained highlight colors, bullets, ordered lists, persistent
+checklists, links, code blocks, and editable tables. Tables use a six-by-six
+size picker plus contextual row, column, and table deletion actions. Notes can
+be exported as either plain text or Markdown.
+
+MongoDB `contentSchemaVersion: 2` stores validated Tiptap-compatible JSON with
+stable block IDs. The server permits only the explicitly supported nodes,
+marks, attributes, link protocols, nesting, size, and depth. It derives
+`plainText` itself from the accepted JSON; search, AI organization, summaries,
+and Book cards continue to use that deterministic plain-text view. Existing
+paragraph-only Notes are converted for display and migrate only when next
+saved, so this release requires no destructive database migration and remains
+compatible with rollback.
+
+The browser keeps the complete rich JSON in its recoverable local draft. The
+API still accepts the previous plain `body` request as a compatibility path for
+an already-open older client. Revision checks remain unchanged. Applying an AI
+organization intentionally replaces the Note body with organized plain text;
+when a Note has formatting, checklist state, code, or tables, EpiNote now warns
+and requires explicit confirmation before that replacement.
+
+References:
+
+- Tiptap React integration: <https://tiptap.dev/docs/editor/getting-started/install/react>
+- Tiptap TableKit: <https://tiptap.dev/docs/editor/extensions/functionality/table-kit>
+- Tiptap Markdown limitations: <https://tiptap.dev/docs/editor/markdown>
+
+## 2026-08-20: explicit, simple code-block workflow
+
+Code blocks are the one Markdown-style convention available even when general
+Markdown shortcuts are off. Typing three backticks followed by Enter creates a
+structured code block; an optional lowercase language after the opening fence
+is retained. A complete fenced snippet pasted as plain text is parsed as code
+without enabling the rest of Markdown.
+
+While the caret is in code, the compact toolbar exposes only a language selector
+and Done action. Done, Ctrl/Command+Enter, a closing three-backtick line, or the
+editor's existing triple-Enter behavior returns to ordinary text. Language is
+presentation metadata only: EpiNote stores and validates it but does not execute
+code or load a syntax-highlighting runtime.
+
+## 2026-08-20: consistent temporary-surface behavior
+
+Temporary UI follows one interaction contract. Action menus, notifications,
+summary popovers, account/table/export menus, and AI panels dismiss when the
+user clicks or taps outside them or presses Escape. Native `details` menus use a
+single workspace-level dismissal listener instead of separate one-off handlers.
+Modal Help and Feedback surfaces dismiss from their backdrop using pointer
+events, so mouse, pen, and touch behave consistently.
+
+Library selection and tree expansion are separate state. Collapsing the current
+Book hides only its children; it does not discard the selected Note, change the
+editor, or interfere with autosave. Reopening another Book still saves pending
+work before changing the active context. Short flat-color transitions provide
+spatial continuity, and all new motion is disabled by the user's reduced-motion
+preference.

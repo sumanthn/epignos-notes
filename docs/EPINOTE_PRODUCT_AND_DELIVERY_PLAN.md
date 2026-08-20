@@ -11,6 +11,10 @@ Detailed authentication contract:
 
 - `docs/EPINOTE_AUTH_DESIGN.md`
 
+Agreed future sharing and collaboration plan:
+
+- `docs/EPINOTE_SHARING_PLAN.md`
+
 Active implementation decisions:
 
 - `docs/EPINOTE_IMPLEMENTATION_DECISIONS.md`

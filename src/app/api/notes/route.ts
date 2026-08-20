@@ -44,7 +44,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const content = contentFromText("");
     const result = await db.collection("notes").insertOne({
       schemaVersion: 1,
-      contentSchemaVersion: 1,
+      contentSchemaVersion: 2,
       organizationId: identity.organizationId,
       workspaceId: identity.workspaceId,
       bookId,
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           bookId: bookId.toHexString(),
           title: "Untitled note",
           body: "",
+          content,
           revision: 1,
           updatedAt: now.toISOString(),
         },

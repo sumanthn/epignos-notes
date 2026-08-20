@@ -37,6 +37,7 @@ export function HelpButton() {
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
+        aria-expanded={open}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="9" />
@@ -49,7 +50,7 @@ export function HelpButton() {
       {open && (
         <div
           className="feedback-overlay"
-          onMouseDown={(event) => {
+          onPointerDown={(event) => {
             if (event.target === event.currentTarget) close();
           }}
         >

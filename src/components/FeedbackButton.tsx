@@ -92,6 +92,7 @@ export function FeedbackButton() {
         type="button"
         onClick={show}
         aria-haspopup="dialog"
+        aria-expanded={open}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M5 5.5h14v10H9l-4 3Z" />
@@ -103,7 +104,7 @@ export function FeedbackButton() {
       {open && (
         <div
           className="feedback-overlay"
-          onMouseDown={(event) => {
+          onPointerDown={(event) => {
             if (event.target === event.currentTarget) close();
           }}
         >

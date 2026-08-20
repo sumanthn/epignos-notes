@@ -1,7 +1,12 @@
 import { ObjectId } from "mongodb";
 
 import { ensureDbIndexes, getDb } from "@/lib/db";
-import { textFromContent } from "@/lib/note-content";
+import {
+  contentFromText,
+  normalizeRichTextContent,
+  textFromContent,
+  type RichTextContent,
+} from "@/lib/note-content";
 import type { SessionUser } from "@/lib/session";
 
 export interface WorkspaceIdentity {
@@ -19,6 +24,7 @@ export interface WorkspacePayload {
     bookId: string;
     title: string;
     body: string;
+    content: RichTextContent;
     revision: number;
     updatedAt: string;
   }>;
@@ -191,13 +197,17 @@ export async function getWorkspacePayload(user: SessionUser): Promise<WorkspaceP
       systemKey: typeof book.systemKey === "string" ? book.systemKey : null,
       noteCount: noteCountByBook.get(book._id.toHexString()) ?? 0,
     })),
-    notes: notes.map((note) => ({
-      id: note._id.toHexString(),
-      bookId: note.bookId.toHexString(),
-      title: note.title,
-      body: textFromContent(note.content),
-      revision: note.revision,
-      updatedAt: note.updatedAt.toISOString(),
-    })),
+    notes: notes.map((note) => {
+      const body = typeof note.plainText === "string" ? note.plainText : textFromContent(note.content);
+      return {
+        id: note._id.toHexString(),
+        bookId: note.bookId.toHexString(),
+        title: note.title,
+        body,
+        content: normalizeRichTextContent(note.content) ?? contentFromText(body),
+        revision: note.revision,
+        updatedAt: note.updatedAt.toISOString(),
+      };
+    }),
   };
 }

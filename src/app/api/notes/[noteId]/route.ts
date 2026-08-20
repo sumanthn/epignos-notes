@@ -10,15 +10,20 @@ import {
   contentFromText,
   contentHash,
   isCanonicalContent,
+  normalizeRichTextContent,
+  textFromContent,
 } from "@/lib/note-content";
 import { getSessionUser } from "@/lib/session";
 import { ensurePersonalHierarchy } from "@/lib/workspace";
 
-const inputSchema = z.object({
-  expectedRevision: z.number().int().positive(),
-  title: z.string().trim().min(1).max(200),
-  body: z.string().max(MAX_NOTE_TEXT_LENGTH),
-});
+const inputSchema = z
+  .object({
+    expectedRevision: z.number().int().positive(),
+    title: z.string().trim().min(1).max(200),
+    body: z.string().max(MAX_NOTE_TEXT_LENGTH).optional(),
+    content: z.unknown().optional(),
+  })
+  .refine((value) => value.content !== undefined || value.body !== undefined);
 
 const deleteInputSchema = z.object({
   expectedRevision: z.number().int().positive(),
@@ -71,7 +76,16 @@ export async function PATCH(
     const previous = isCanonicalContent(existing.content)
       ? (existing.content as CanonicalContent)
       : undefined;
-    const content = contentFromText(parsed.data.body, previous);
+    const content = parsed.data.content === undefined
+      ? contentFromText(parsed.data.body ?? "", previous)
+      : normalizeRichTextContent(parsed.data.content);
+    if (!content) {
+      return NextResponse.json({ error: "This note contains unsupported formatting." }, { status: 400 });
+    }
+    const plainText = textFromContent(content);
+    if (plainText.length > MAX_NOTE_TEXT_LENGTH) {
+      return NextResponse.json({ error: "This note is too large to save." }, { status: 400 });
+    }
     const now = new Date();
     const result = await db.collection("notes").findOneAndUpdate(
       {
@@ -86,7 +100,8 @@ export async function PATCH(
           title: parsed.data.title,
           titleSource: "user",
           content,
-          plainText: parsed.data.body,
+          contentSchemaVersion: 2,
+          plainText,
           contentHash: contentHash(content),
           updatedBy: user.id,
           updatedAt: now,

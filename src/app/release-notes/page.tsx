@@ -12,9 +12,42 @@ export const metadata: Metadata = {
 
 const releases = [
   {
+    date: "August 20, 2026",
+    title: "Menus and the Library now behave naturally",
+    current: true,
+    changes: [
+      "Menus, popovers, and AI panels close when you click elsewhere or press Escape; touch dismissal works the same way.",
+      "Click an open Book again to collapse its note tree without changing or closing the Note you are editing.",
+      "Account, table, and export menus no longer remain stuck open, and exports close their menu after download starts.",
+      "Small, restrained transitions make temporary surfaces easier to follow while respecting reduced-motion settings.",
+    ],
+  },
+  {
+    date: "August 20, 2026",
+    title: "Code blocks that stay out of the way",
+    current: false,
+    changes: [
+      "Type three backticks and press Enter to start a code block, even when general Markdown shortcuts are off.",
+      "Choose a common language only while working inside code, then use Done, Ctrl/⌘+Enter, or a closing fence to return to normal writing.",
+      "Complete fenced snippets pasted into a Note are preserved as structured code and remain fenced when exported as Markdown.",
+    ],
+  },
+  {
+    date: "August 19, 2026",
+    title: "A simple editor with serious formatting",
+    current: false,
+    changes: [
+      "Notes still open as a clean writing surface, with Markdown shortcuts off by default.",
+      "The compact editor bar now supports headings, fonts, bold, italic, underline, highlights, links, bullets, numbered lists, and checklists.",
+      "Code blocks and editable tables can be inserted without leaving the note.",
+      "Markdown-oriented users can enable shortcuts and paste conversion, then export a note as Markdown.",
+      "Rich content autosaves as validated structured data while search, summaries, and AI continue using a plain-text view.",
+    ],
+  },
+  {
     date: "August 18, 2026",
     title: "Help, feedback, and operations",
-    current: true,
+    current: false,
     changes: [
       "A new Help guide is available directly from the workspace top bar.",
       "Users can privately submit bugs and feature requests without copying their email or note contents.",

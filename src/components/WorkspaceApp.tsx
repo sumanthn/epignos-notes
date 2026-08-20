@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { HelpButton } from "@/components/HelpButton";
 import { ProductWordmark } from "@/components/ProductWordmark";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import {
+  contentFromText,
+  hasRichFormatting,
+  markdownFromContent,
+  normalizeRichTextContent,
+} from "@/lib/rich-text";
 import type { WorkspacePayload } from "@/lib/workspace";
 
 type Note = WorkspacePayload["notes"][number];
@@ -147,6 +154,7 @@ export function WorkspaceApp({
   const [books, setBooks] = useState(initialWorkspace.books);
   const [notes, setNotes] = useState(initialWorkspace.notes);
   const [activeBookId, setActiveBookId] = useState<string | null>(initialBookId);
+  const [expandedBookId, setExpandedBookId] = useState<string | null>(initialBookId);
   const [selectedId, setSelectedId] = useState(initialNoteId);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("Saved");
@@ -203,7 +211,6 @@ export function WorkspaceApp({
   const [noteSummaryFacetsState, setNoteSummaryFacetsState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const notesRef = useRef(notes);
   const savingRef = useRef(false);
-  const editorRef = useRef<HTMLTextAreaElement>(null);
   const organizePollRef = useRef<number | null>(null);
   const cardsPollRef = useRef<number | null>(null);
 
@@ -310,20 +317,118 @@ export function WorkspaceApp({
   }, [noteSummaryOpen]);
 
   useEffect(() => {
+    function closeDismissibleDetails(event: PointerEvent) {
+      const target = event.target;
+      document
+        .querySelectorAll<HTMLDetailsElement>("details.dismissible-details[open]")
+        .forEach((details) => {
+          if (!(target instanceof Node) || !details.contains(target)) {
+            details.removeAttribute("open");
+          }
+        });
+    }
+
+    function closeDismissibleDetailsWithKeyboard(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      const openDetails = Array.from(
+        document.querySelectorAll<HTMLDetailsElement>("details.dismissible-details[open]"),
+      );
+      for (const details of openDetails) details.removeAttribute("open");
+      if (openDetails.length > 0) {
+        const summary = openDetails.at(-1)?.querySelector<HTMLElement>("summary");
+        summary?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", closeDismissibleDetails, true);
+    document.addEventListener("keydown", closeDismissibleDetailsWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeDismissibleDetails, true);
+      document.removeEventListener("keydown", closeDismissibleDetailsWithKeyboard);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!organizePanelOpen && !cardsPanelOpen) return;
+
+    function dismissSidePanels(event: PointerEvent) {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".organize-panel, .cards-panel")
+      ) {
+        return;
+      }
+
+      if (organizePanelOpen) {
+        if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
+        organizePollRef.current = null;
+        setOrganizePanelOpen(false);
+        setOrganizeState("idle");
+        setOrganizeProposal(null);
+        setOrganizeError("");
+      }
+      if (cardsPanelOpen) {
+        if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
+        cardsPollRef.current = null;
+        setCardsPanelOpen(false);
+        setCardsState("idle");
+        setCardDeck(null);
+        setCardsError("");
+        setCardsBookId(null);
+      }
+    }
+
+    function dismissSidePanelsWithKeyboard(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (organizePollRef.current !== null) window.clearTimeout(organizePollRef.current);
+      if (cardsPollRef.current !== null) window.clearTimeout(cardsPollRef.current);
+      organizePollRef.current = null;
+      cardsPollRef.current = null;
+      setOrganizePanelOpen(false);
+      setOrganizeState("idle");
+      setOrganizeProposal(null);
+      setOrganizeError("");
+      setCardsPanelOpen(false);
+      setCardsState("idle");
+      setCardDeck(null);
+      setCardsError("");
+      setCardsBookId(null);
+    }
+
+    document.addEventListener("pointerdown", dismissSidePanels, true);
+    document.addEventListener("keydown", dismissSidePanelsWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", dismissSidePanels, true);
+      document.removeEventListener("keydown", dismissSidePanelsWithKeyboard);
+    };
+  }, [cardsPanelOpen, organizePanelOpen]);
+
+  useEffect(() => {
     if (!selected) return;
     const rawDraft = window.localStorage.getItem(`epinote:draft:${selected.id}`);
     if (!rawDraft) return;
 
     try {
-      const draft = JSON.parse(rawDraft) as Pick<Note, "title" | "body" | "revision">;
+      const draft = JSON.parse(rawDraft) as Pick<Note, "title" | "body" | "revision"> & {
+        content?: unknown;
+      };
+      const draftContent = normalizeRichTextContent(draft.content)
+        ?? contentFromText(draft.body, selected.content);
       if (
         draft.revision === selected.revision &&
-        (draft.title !== selected.title || draft.body !== selected.body)
+        (
+          draft.title !== selected.title ||
+          draft.body !== selected.body ||
+          JSON.stringify(draftContent) !== JSON.stringify(selected.content)
+        )
       ) {
         const timeout = window.setTimeout(() => {
           setNotes((current) =>
             current.map((note) =>
-              note.id === selected.id ? { ...note, title: draft.title, body: draft.body } : note,
+              note.id === selected.id
+                ? { ...note, title: draft.title, body: draft.body, content: draftContent }
+                : note,
             ),
           );
           setDirty(true);
@@ -352,6 +457,7 @@ export function WorkspaceApp({
           expectedRevision: note.revision,
           title: note.title || "Untitled note",
           body: note.body,
+          content: note.content,
         }),
       });
       const data = (await response.json()) as {
@@ -367,7 +473,9 @@ export function WorkspaceApp({
 
       const latest = notesRef.current.find((item) => item.id === note.id);
       const unchangedSinceRequest =
-        latest?.title === note.title && latest?.body === note.body;
+        latest?.title === note.title &&
+        latest?.body === note.body &&
+        JSON.stringify(latest?.content) === JSON.stringify(note.content);
 
       setNotes((current) => {
         const next = current.map((item) =>
@@ -402,14 +510,19 @@ export function WorkspaceApp({
     return () => window.clearTimeout(timeout);
   }, [dirty, selected, saveNote, renamingNoteId]);
 
-  function updateSelected(changes: Partial<Pick<Note, "title" | "body">>) {
+  function updateSelected(changes: Partial<Pick<Note, "title" | "body" | "content">>) {
     if (!selected) return;
     if (noteSummaryOpen) closeNoteSummary();
     const next = { ...selected, ...changes };
     setNotes((current) => current.map((note) => (note.id === selected.id ? next : note)));
     window.localStorage.setItem(
       `epinote:draft:${selected.id}`,
-      JSON.stringify({ title: next.title, body: next.body, revision: next.revision }),
+      JSON.stringify({
+        title: next.title,
+        body: next.body,
+        content: next.content,
+        revision: next.revision,
+      }),
     );
     setDirty(true);
     setSaveState("Unsaved changes");
@@ -423,7 +536,10 @@ export function WorkspaceApp({
     }
     if (dirty && selected && !(await saveNote(selected))) return;
     const nextNote = notesRef.current.find((note) => note.id === noteId);
-    if (nextNote) setActiveBookId(nextNote.bookId);
+    if (nextNote) {
+      setActiveBookId(nextNote.bookId);
+      setExpandedBookId(nextNote.bookId);
+    }
     setSelectedId(noteId);
     setDirty(false);
     setError("");
@@ -458,13 +574,13 @@ export function WorkspaceApp({
         ),
       );
       setSelectedId(data.note.id);
+      setExpandedBookId(data.note.bookId);
       setDirty(false);
       setSaveState("Saved");
       setPreview(false);
       closeOrganizePanel();
       closeCardsPanel();
       closeNoteSummary();
-      window.setTimeout(() => editorRef.current?.focus(), 0);
     } catch {
       setError("EpiNote is unreachable. Try again when your connection returns.");
     } finally {
@@ -475,15 +591,22 @@ export function WorkspaceApp({
   async function chooseBook(bookId: string) {
     closeBookCreator();
     setBookActionId(null);
-    if (bookId === activeBookId) {
+    if (bookId === expandedBookId) {
+      setExpandedBookId(null);
       if (cardsPanelOpen) closeCardsPanel();
       if (noteSummaryOpen) closeNoteSummary();
+      return;
+    }
+    if (bookId === activeBookId) {
+      setExpandedBookId(bookId);
+      setQuery("");
       return;
     }
     if (dirty && selected && !(await saveNote(selected))) return;
     closeCardsPanel();
     closeNoteSummary();
     setActiveBookId(bookId);
+    setExpandedBookId(bookId);
     setSelectedId(notesRef.current.find((note) => note.bookId === bookId)?.id ?? null);
     setDirty(false);
     setError("");
@@ -591,6 +714,7 @@ export function WorkspaceApp({
 
       setBooks((current) => [...current, data.book!]);
       setActiveBookId(data.book.id);
+      setExpandedBookId(data.book.id);
       setSelectedId(null);
       setBookNameDraft("");
       setAddingBook(false);
@@ -603,33 +727,17 @@ export function WorkspaceApp({
     }
   }
 
-  function startBulletList() {
-    const editor = editorRef.current;
-    if (!editor || !selected) return;
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    const selection = selected.body.slice(start, end);
-    const bulleted = selection
-      ? selection.split("\n").map((line) => `• ${line}`).join("\n")
-      : "• ";
-    const nextBody = selected.body.slice(0, start) + bulleted + selected.body.slice(end);
-    updateSelected({ body: nextBody });
-    window.setTimeout(() => {
-      editor.focus();
-      const cursor = selection ? start + bulleted.length : start + 2;
-      editor.setSelectionRange(cursor, cursor);
-    }, 0);
-  }
-
-  function exportNote() {
+  function exportNote(format: "text" | "markdown") {
     if (!selected) return;
-    const blob = new Blob([`${selected.title}\n\n${selected.body}\n`], {
+    const body = format === "markdown" ? markdownFromContent(selected.content) : selected.body;
+    const blob = new Blob([`${selected.title}\n\n${body}\n`], {
       type: "text/plain;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${selected.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "note"}.txt`;
+    const extension = format === "markdown" ? "md" : "txt";
+    link.download = `${selected.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "note"}.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -842,6 +950,7 @@ export function WorkspaceApp({
       );
       if (note.id === selectedId) {
         setActiveBookId(data.note.bookId);
+        setExpandedBookId(data.note.bookId);
         setQuery("");
         setDirty(false);
         setSaveState("Saved");
@@ -884,6 +993,7 @@ export function WorkspaceApp({
       if (activeBookId === book.id) {
         const fallback = remaining.find((item) => item.systemKey === "unsorted") ?? remaining[0];
         setActiveBookId(fallback?.id ?? null);
+        setExpandedBookId(fallback?.id ?? null);
         setSelectedId(
           fallback
             ? notesRef.current.find((item) => item.bookId === fallback.id)?.id ?? null
@@ -1213,6 +1323,7 @@ export function WorkspaceApp({
     if (dirty && selected && !(await saveNote(selected))) return;
     closeCardsPanel();
     setActiveBookId(note.bookId);
+    setExpandedBookId(note.bookId);
     setSelectedId(note.id);
     setDirty(false);
     setPreview(true);
@@ -1221,6 +1332,12 @@ export function WorkspaceApp({
 
   async function applyOrganization() {
     if (!selected || !organizeProposal || organizeState === "applying") return;
+    if (
+      hasRichFormatting(selected.content) &&
+      !window.confirm("Apply this organization and replace the note's current formatting, checklist states, code blocks, and tables with organized text?")
+    ) {
+      return;
+    }
     setOrganizeState("applying");
     setOrganizeError("");
     try {
@@ -1295,6 +1412,7 @@ export function WorkspaceApp({
     if (dirty && selected && !(await saveNote(selected))) return;
     setNotificationsOpen(false);
     setActiveBookId(note.bookId);
+    setExpandedBookId(note.bookId);
     setSelectedId(note.id);
     setDirty(false);
     setError("");
@@ -1554,7 +1672,7 @@ export function WorkspaceApp({
               </div>
             )}
           </div>
-          <details className="user-menu">
+          <details className="user-menu dismissible-details">
             <summary className="avatar-button" title="Open account menu" aria-label="Open account menu">
               {avatar}
             </summary>
@@ -1642,7 +1760,7 @@ export function WorkspaceApp({
                   }}
                 >
                   <button
-                    className={`book-row ${book.id === activeBookId ? "selected" : ""}`}
+                    className={`book-row ${book.id === expandedBookId ? "selected" : ""}`}
                     type="button"
                     onClick={() => void chooseBook(book.id)}
                     onDoubleClick={() => beginBookRename(book)}
@@ -1651,7 +1769,7 @@ export function WorkspaceApp({
                     }}
                     title={book.systemKey === "unsorted" ? "Default place for quick captures" : "Double-click to rename"}
                   >
-                    <span aria-hidden="true">{book.id === activeBookId ? "▾" : "›"}</span>
+                    <span className="book-disclosure" aria-hidden="true">{book.id === expandedBookId ? "▾" : "›"}</span>
                     <UiIcon name={book.systemKey === "unsorted" ? "capture" : "book"} />
                     <strong>{book.name}</strong>
                     <span className="book-note-count" aria-label={`${book.noteCount} notes`}>
@@ -1711,12 +1829,15 @@ export function WorkspaceApp({
                       {book.noteCount > 0 && <p>Move or delete its notes before deleting this book.</p>}
                     </div>
                   )}
-                  {book.id === activeBookId && !query.trim() && (
+                  {book.id === expandedBookId && !query.trim() && (
                     <div className="book-children" aria-label={`${book.name} notes`}>
                       <button
                         className={`book-summary-row ${cardsPanelOpen && cardsBookId === book.id ? "selected" : ""} ${bookCardTreeState(book.id).state}`}
                         type="button"
-                        onClick={() => void openBookCards(book)}
+                        onClick={() => {
+                          if (cardsPanelOpen && cardsBookId === book.id) closeCardsPanel();
+                          else void openBookCards(book);
+                        }}
                         disabled={book.noteCount === 0}
                         title={book.noteCount === 0 ? "Add notes to create a summary" : `Open ${book.name} summary cards`}
                       >
@@ -1805,102 +1926,90 @@ export function WorkspaceApp({
                   aria-label="Note title"
                 />
               </div>
-              <div className="format-bar" aria-label="Formatting">
-                <button type="button" onClick={() => setPreview(false)} className={!preview ? "active" : ""}>Edit</button>
-                <button type="button" onClick={startBulletList} aria-label="Bullet list">• List</button>
-                <span className="format-spacer" />
-                <div className="note-summary-control">
-                  <button
-                    type="button"
-                    className={noteSummaryOpen ? "active" : ""}
-                    aria-expanded={noteSummaryOpen}
-                    onClick={() => void toggleNoteSummary()}
-                  >
-                    Summary
-                  </button>
-                  {noteSummaryOpen && (
-                    <aside className="note-summary-popover" aria-label="Note summary">
-                      <header>
-                        <span>
-                          <small>Quick reference</small>
-                          <strong>Note summary</strong>
-                        </span>
-                        <button type="button" onClick={closeNoteSummary} aria-label="Close note summary">×</button>
-                      </header>
-                      {noteSummaryState === "loading" && (
-                        <p className="note-summary-message" role="status">Loading summary…</p>
-                      )}
-                      {noteSummaryState === "empty" && (
-                        <p className="note-summary-message">Organize this note to create its summary.</p>
-                      )}
-                      {noteSummaryState === "error" && (
-                        <p className="note-summary-message error" role="alert">{noteSummaryError}</p>
-                      )}
-                      {noteSummaryState === "ready" && (
-                        <div className={`note-summary-content ${noteSummarySource === "approved" ? "approved" : "suggested"}`}>
-                          <p>{highlightedSummary(noteSummary, noteSummaryFacets)}</p>
-                          <span className="note-summary-source-label">
-                            {noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}
-                          </span>
-                          {noteSummaryFacetsState === "loading" && (
-                            <p className="summary-profile-status" role="status">Finding people, topics, and sources…</p>
+              <RichTextEditor
+                noteId={selected.id}
+                content={selected.content}
+                readOnly={preview}
+                onEdit={() => setPreview(false)}
+                onChange={(content, body) => updateSelected({ content, body })}
+                toolbarTail={(
+                  <>
+                    <div className="note-summary-control">
+                      <button
+                        type="button"
+                        className={noteSummaryOpen ? "active" : ""}
+                        aria-expanded={noteSummaryOpen}
+                        onClick={() => void toggleNoteSummary()}
+                      >
+                        Summary
+                      </button>
+                      {noteSummaryOpen && (
+                        <aside className="note-summary-popover" aria-label="Note summary">
+                          <header>
+                            <span>
+                              <small>Quick reference</small>
+                              <strong>Note summary</strong>
+                            </span>
+                            <button type="button" onClick={closeNoteSummary} aria-label="Close note summary">×</button>
+                          </header>
+                          {noteSummaryState === "loading" && (
+                            <p className="note-summary-message" role="status">Loading summary…</p>
                           )}
-                          {noteSummaryFacetsState === "error" && (
-                            <p className="summary-profile-status">Context labels are unavailable right now.</p>
+                          {noteSummaryState === "empty" && (
+                            <p className="note-summary-message">Organize this note to create its summary.</p>
                           )}
-                          {noteSummaryFacets && (
-                            <div className="summary-profile">
-                              <SummaryFacetGroup label="Authors" kind="author" values={noteSummaryFacets.authors} />
-                              <SummaryFacetGroup label="Sources" kind="source" values={noteSummaryFacets.references} />
-                              <SummaryFacetGroup label="People" kind="person" values={noteSummaryFacets.people} />
-                              <SummaryFacetGroup label="Topics" kind="topic" values={noteSummaryFacets.topics} />
-                              <SummaryFacetGroup label="Places" kind="place" values={noteSummaryFacets.places} />
-                              <SummaryFacetGroup label="Dates" kind="date" values={noteSummaryFacets.dates} />
-                              {noteSummaryFacets.sources.length > 0 && (
-                                <div className="summary-facet-group">
-                                  <span>Links</span>
-                                  <div>
-                                    {noteSummaryFacets.sources.map((source) => (
-                                      <a
-                                        className="summary-facet link"
-                                        href={source.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        key={source.url}
-                                      >
-                                        {source.label} ↗
-                                      </a>
-                                    ))}
-                                  </div>
+                          {noteSummaryState === "error" && (
+                            <p className="note-summary-message error" role="alert">{noteSummaryError}</p>
+                          )}
+                          {noteSummaryState === "ready" && (
+                            <div className={`note-summary-content ${noteSummarySource === "approved" ? "approved" : "suggested"}`}>
+                              <p>{highlightedSummary(noteSummary, noteSummaryFacets)}</p>
+                              <span className="note-summary-source-label">
+                                {noteSummarySource === "approved" ? "Applied summary" : "AI suggestion"}
+                              </span>
+                              {noteSummaryFacetsState === "loading" && (
+                                <p className="summary-profile-status" role="status">Finding people, topics, and sources…</p>
+                              )}
+                              {noteSummaryFacetsState === "error" && (
+                                <p className="summary-profile-status">Context labels are unavailable right now.</p>
+                              )}
+                              {noteSummaryFacets && (
+                                <div className="summary-profile">
+                                  <SummaryFacetGroup label="Authors" kind="author" values={noteSummaryFacets.authors} />
+                                  <SummaryFacetGroup label="Sources" kind="source" values={noteSummaryFacets.references} />
+                                  <SummaryFacetGroup label="People" kind="person" values={noteSummaryFacets.people} />
+                                  <SummaryFacetGroup label="Topics" kind="topic" values={noteSummaryFacets.topics} />
+                                  <SummaryFacetGroup label="Places" kind="place" values={noteSummaryFacets.places} />
+                                  <SummaryFacetGroup label="Dates" kind="date" values={noteSummaryFacets.dates} />
+                                  {noteSummaryFacets.sources.length > 0 && (
+                                    <div className="summary-facet-group">
+                                      <span>Links</span>
+                                      <div>
+                                        {noteSummaryFacets.sources.map((source) => (
+                                          <a
+                                            className="summary-facet link"
+                                            href={source.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            key={source.url}
+                                          >
+                                            {source.label} ↗
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
                           )}
-                        </div>
+                        </aside>
                       )}
-                    </aside>
-                  )}
-                </div>
-                <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Read</button>
-              </div>
-              <div className="editor-area">
-                {preview ? (
-                  <article className="note-preview">
-                    {selected.body.split("\n").map((line, index) => (
-                      <p key={`${index}-${line.slice(0, 12)}`}>{line || "\u00a0"}</p>
-                    ))}
-                  </article>
-                ) : (
-                  <textarea
-                    ref={editorRef}
-                    value={selected.body}
-                    onChange={(event) => updateSelected({ body: event.target.value })}
-                    placeholder="Start writing…"
-                    aria-label="Note content"
-                    spellCheck
-                  />
+                    </div>
+                    <button type="button" onClick={() => setPreview(true)} className={preview ? "active" : ""}>Read</button>
+                  </>
                 )}
-              </div>
+              />
               <footer className="note-footer">
                 <button
                   className="button button-secondary button-small organize-button"
@@ -1913,7 +2022,25 @@ export function WorkspaceApp({
                 </button>
                 <div className="note-footer-right">
                   {error && <span className="workspace-error" role="alert">{error}</span>}
-                  <button className="button button-secondary button-small" type="button" onClick={exportNote}>Export</button>
+                  <details className="export-menu dismissible-details">
+                    <summary className="button button-secondary button-small">Export</summary>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          exportNote("text");
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                        }}
+                      >Plain text (.txt)</button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          exportNote("markdown");
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                        }}
+                      >Markdown (.md)</button>
+                    </div>
+                  </details>
                   {!dirty && saveState === "Saved" ? (
                     <span className="autosave-confirmation" role="status">✓ Saved automatically</span>
                   ) : (
@@ -1939,6 +2066,7 @@ export function WorkspaceApp({
                   </header>
                   <p className="organize-safety">
                     Your saved text is sent to OpenRouter. The original stays unchanged until you apply the suggestion.
+                    {hasRichFormatting(selected.content) && " Applying replaces the note’s current rich formatting with organized text."}
                   </p>
                   {organizeState === "loading" && (
                     <div className="organize-panel-state" role="status">

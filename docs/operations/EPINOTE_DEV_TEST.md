@@ -602,3 +602,82 @@ The in-app visual browser was unavailable during verification. Rendered HTML,
 compiled CSS, responsive source rules, and production assets were verified; a
 captured desktop/mobile screenshot remains optional visual QA rather than a
 deployment blocker for this small identity marker.
+
+## 2026-08-19 simple-first rich editor
+
+The Note textarea was replaced with a validated structured editor while keeping
+plain writing and autosave as the default workflow. Markdown shortcuts remain
+off until a user enables them. Formatting includes headings, a document font,
+bold, italic, underline, restrained highlights, links, lists, checklists, code
+blocks, and editable tables. Text and Markdown exports are both available.
+
+An isolated public account exercised the real HTTPS API and was removed with its
+session, organization, workspace, Book, and archived Note after verification.
+No existing user content was changed.
+
+```text
+release candidate                        20260819-rich-editor-v2
+new Note / rich save                     201 / 200
+rich JSON persisted after reload         yes
+heading, marks, checklist, code, table   present
+unsupported javascript link              400
+stale revision update                     409
+test Note archive                         200
+temporary tenant data removed             yes
+local and public health                   200, database reachable
+compiled CSS / JavaScript assets          200 / 200
+HTTP redirect                             308 to canonical HTTPS domain
+quality gates                             48 tests, typecheck, lint, production build
+```
+
+The in-app browser was unavailable during this release verification. The live
+authenticated server-rendered workspace, persistence contract, compiled assets,
+and responsive source rules were verified; interactive visual QA remains the one
+explicit follow-up risk.
+
+## 2026-08-20 intuitive code blocks
+
+The rich editor now treats fenced code as an explicit code-entry affordance,
+independent of the optional general Markdown preference. Opening and closing
+fences, contextual language selection, a visible Done action, and the
+Ctrl/Command+Enter exit shortcut are covered by the production build and
+structured-content tests.
+
+```text
+release                                  /opt/epinote/releases/20260820-code-blocks-v1
+previous release                         /opt/epinote/releases/20260819-rich-editor-v2
+service / nginx / MongoDB                active / active / active
+local and public health                  200, database reachable
+HTTP redirect                            308 to canonical HTTPS domain
+release notes and compiled controls      present
+compiled JavaScript / CSS assets         200 / 200
+known npm vulnerabilities                0
+quality gates                            49 tests, typecheck, lint, production build
+```
+
+No data migration or package addition was required. The previous versioned
+release remains available for immediate rollback.
+
+## 2026-08-20 UI dismissal and Library collapse
+
+Temporary workspace surfaces now share predictable outside-click/tap and Escape
+dismissal behavior. Library expansion is independent from the active Note, so a
+Book can be collapsed without changing the editor or autosave context.
+
+```text
+release                                  /opt/epinote/releases/20260820-ui-dismiss-v2
+previous release                         /opt/epinote/releases/20260820-code-blocks-v1
+service / nginx / MongoDB                active / active / active
+local and public health                  200, database reachable
+HTTP redirect                            308 to canonical HTTPS domain
+release notes and dismissal bundle       present
+compiled JavaScript / CSS assets         200 / 200
+motion / reduced-motion rules            present / present
+known npm vulnerabilities                0
+quality gates                            49 tests, typecheck, lint, production build
+```
+
+The configured in-app browser was unavailable, so visual pointer-path testing
+could not be automated in this session. Source interaction paths, the production
+bundle, responsive styles, service logs, and public assets were verified. The
+previous release remains available for immediate rollback.
