@@ -1,6 +1,6 @@
 # EpiNote backup and restore runbook
 
-Status: first encrypted backup verified; scheduled uploads intentionally disabled
+Status: encrypted backup verified; scheduled uploads active with accepted broad credential
 Last tested: 2026-08-21
 
 This runbook is the operational companion to
@@ -40,7 +40,9 @@ identity or backup configuration.
 Prerequisites:
 
 - `/root/.config/epinote-backup/gcloud` contains an active dedicated uploader;
-- that identity has bucket-level `roles/storage.objectCreator` only;
+- the intended production identity has bucket-level
+  `roles/storage.objectCreator` only; the currently installed broad identity is
+  a temporary operator-accepted exception;
 - `/root/.config/epinote-backup/gcs-uploader.json` is root-owned mode `0600`;
 - `epinote`, `nginx`, and `mongod` are healthy.
 
@@ -59,10 +61,13 @@ application while MongoDB is dumped, restarts it before packaging/upload, and
 uses an exit trap to restart it after failures. Before encryption it rejects a
 dump whose dry-run inventory does not contain `epignos_dev.notes`.
 
-## 3. Enable the recurring timer
+## 3. Recurring timer
 
-Do this only after verifying the uploader cannot read, list, delete, overwrite,
-or change the bucket.
+Current state: enabled and active. The uploader is root-only and inaccessible to
+the EpiNote application user, but it currently has broader GCP permissions than
+the desired upload-only role.
+
+To enable the timer after reinstalling or replacing the credential:
 
 ```bash
 sudo systemctl enable --now epinote-backup.timer
@@ -133,10 +138,9 @@ instance because it contains production authentication state.
 
 ## 6. Known remaining work
 
-- Create a dedicated bucket-level `Storage Object Creator` service account and
-  replace/revoke the broad supplied key.
-- Reinstall only that key on Contabo, verify effective permissions, run another
-  manual backup/restore check, and then enable the timer.
+- Create a dedicated bucket-level `Storage Object Creator` service account,
+  install it on Contabo, verify effective permissions, run another manual
+  backup, and then replace/revoke the broad supplied key.
 - Add prefix-scoped lifecycle rules for 35-day frequent, 90-day weekly, and
   400-day monthly retention without affecting unrelated objects in the shared
   bucket.

@@ -778,12 +778,15 @@ restore collections / documents         14 / 248
 restore failures / count mismatches     0 / 0
 Notes / users restored                  42 / 5
 service / nginx / MongoDB               active / active / active
-backup timer                            disabled
-server GCP uploader credential          removed
+backup timer                            enabled and active, every six hours
+server GCP uploader credential          root-only; application access denied
 ```
 
 The supplied GCP key was not suitable for unattended use because it could read,
-list, and delete objects and update the bucket. The timer intentionally remains
-disabled until a dedicated bucket-level `Storage Object Creator` identity is
-installed and verified. See `EPINOTE_BACKUP_RUNBOOK.md` for recovery steps and
-remaining operational work.
+list, and delete objects and update the bucket. After the operator explicitly
+accepted temporary use of that key, it was installed as `root:root` mode `0600`,
+a second encrypted object was uploaded and metadata-verified, and the timer was
+enabled. The EpiNote application user cannot read the credential. Replacing it
+with a dedicated bucket-level `Storage Object Creator` identity remains a
+hardening task. See `EPINOTE_BACKUP_RUNBOOK.md` for recovery steps and remaining
+operational work.

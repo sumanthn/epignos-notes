@@ -1,13 +1,14 @@
 # EpiNote GCP backup and recovery plan
 
-Status: first encrypted backup restored successfully; recurring timer awaits a least-privilege uploader
+Status: encrypted backup restored successfully; recurring six-hour timer active
 Last updated: 2026-08-21
 
 This document records the agreed backup design for the current EpiNote deployment.
 The backup job and timer are installed, and the first real encrypted backup has
-been uploaded and restored successfully. The timer is intentionally disabled
-because the supplied GCP identity has broad inherited bucket permissions. Its
-credential was removed from Contabo after the verified one-time upload.
+been uploaded and restored successfully. After the operator explicitly accepted
+temporary use of the supplied broad GCP identity, its credential was installed
+root-only and the recurring timer was enabled. Replacing it with an upload-only
+identity remains required hardening.
 
 ## 0. Verified implementation checkpoint (2026-08-21)
 
@@ -59,8 +60,8 @@ Installed server components:
 MongoDB user epinote_backup               built-in backup role
 ```
 
-The timer is disabled. Do not enable it until a new dedicated service-account
-key passes the permission test below with only `storage.objects.create`:
+The intended replacement service-account key must pass the permission test below
+with only `storage.objects.create`:
 
 ```text
 storage.objects.create   required
@@ -70,10 +71,11 @@ storage.objects.delete   must be absent
 storage.buckets.update   must be absent
 ```
 
-The supplied key had all five permissions, so its file and cached Cloud SDK
-credentials were removed from Contabo after the one-time verified upload. The
-key remains on the Mac with mode `0600`; it should be replaced or revoked after
-a dedicated uploader is created.
+The supplied key had all five permissions. It was initially removed after the
+one-time restore test, then reinstalled after the operator explicitly accepted
+temporary use. It is `root:root` mode `0600`; the EpiNote application user cannot
+read it. A fresh object uploaded with that installed credential matched its
+recorded GCS size and SHA-256 metadata exactly. The timer is enabled and active.
 
 ## 1. Recovery objective
 
@@ -301,7 +303,8 @@ The backup project is complete only when:
 - the measured RPO and RTO meet the targets above; and
 - the recovery steps work without relying on undocumented knowledge.
 
-Current result: encrypted upload and isolated restore are proven. Least-privilege
-recurring upload, lifecycle/retention policy, and a second offline copy of the
-recovery private key remain open. The executable recovery procedure is in
+Current result: encrypted upload and isolated restore are proven, and recurring
+execution is scheduled and active. A least-privilege replacement credential,
+lifecycle/retention policy, and a second offline copy of the recovery private key
+remain open. The executable recovery procedure is in
 `docs/operations/EPINOTE_BACKUP_RUNBOOK.md`.

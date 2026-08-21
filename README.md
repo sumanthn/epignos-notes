@@ -128,11 +128,12 @@ npm run build
 
 ## Development status
 
-EpiNote is a beta. One encrypted off-server backup has passed a full restore
-test, but recurring backups remain disabled until an upload-only GCP identity is
-installed. Email verification, password-reset delivery, attachments, and the
-complete richer block editor are not finished. Review the operational
-documentation before using this deployment for production or sensitive data.
+EpiNote is a beta. Encrypted off-server backups run every six hours and one has
+passed a full restore test. The current GCP credential is root-only but broader
+than the intended upload-only role and should be replaced. Email verification,
+password-reset delivery, attachments, and the complete richer block editor are
+not finished. Review the operational documentation before using this deployment
+for production or sensitive data.
 
 ## License
 

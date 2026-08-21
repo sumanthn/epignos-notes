@@ -570,12 +570,14 @@ All 14 application collections, 248 documents, indexes, 42 Notes, and 5 users
 matched production with zero restore failures. The private recovery key remained
 on the Mac.
 
-The supplied GCP identity also had read, list, delete, and bucket-update
-permissions. Its credential and cached Cloud SDK session were therefore removed
-from Contabo after the verified upload, and the recurring timer remains disabled.
-Scheduled backups become active only after a dedicated bucket-level `Storage
-Object Creator` identity passes the least-privilege check. Implementation status,
-the full acceptance evidence, and recovery steps are in
+The supplied GCP identity also has read, list, delete, and bucket-update
+permissions. It was initially removed after the restore test. On 2026-08-21 the
+operator explicitly accepted using it temporarily, so it was reinstalled with
+root-only permissions and the six-hour timer was enabled after another exact
+object metadata/checksum verification. The EpiNote application user cannot read
+the credential. Replacing it with a dedicated bucket-level `Storage Object
+Creator` identity remains required hardening. Implementation status, the full
+acceptance evidence, and recovery steps are in
 `docs/operations/EPINOTE_GCP_BACKUP_PLAN.md` and
 `docs/operations/EPINOTE_BACKUP_RUNBOOK.md`.
 
