@@ -1,11 +1,79 @@
 # EpiNote GCP backup and recovery plan
 
-Status: approved direction; implementation intentionally deferred
-Last updated: 2026-08-20
+Status: first encrypted backup restored successfully; recurring timer awaits a least-privilege uploader
+Last updated: 2026-08-21
 
 This document records the agreed backup design for the current EpiNote deployment.
-No Google Cloud resource, server credential, timer, or backup job has been created
-yet.
+The backup job and timer are installed, and the first real encrypted backup has
+been uploaded and restored successfully. The timer is intentionally disabled
+because the supplied GCP identity has broad inherited bucket permissions. Its
+credential was removed from Contabo after the verified one-time upload.
+
+## 0. Verified implementation checkpoint (2026-08-21)
+
+Destination selected by the operator:
+
+```text
+bucket:                   gs://databay-personal
+prefix:                   epinote/dev-test
+location:                 US
+uniform bucket access:    enabled
+public access prevention: enforced
+soft delete:              7 days
+bucket retention policy:  not configured
+lifecycle rules:          not configured for this prefix
+```
+
+The bucket's US location differs from the earlier preferred EU direction. Every
+EpiNote object is nevertheless encrypted before upload with a recovery public
+key; the private key never reached Contabo.
+
+First verified object:
+
+```text
+gs://databay-personal/epinote/dev-test/frequent/2026/08/21/epinote-20260821T135146Z.tar.gz.gpg
+size:       527251 bytes
+sha256:     62ac8b8820fa8f56090a04b6887e21df1e477fc4cbeda4bce9be48b2e7d93c29
+format:     epinote-encrypted-backup-v1
+fingerprint: 91D07281610077462848BEF1161EA78A41D5F7FF
+```
+
+The downloaded object matched the server checksum, decrypted on the Mac, and
+passed every member checksum. Its application database restored into an
+isolated MongoDB namespace with 14 collections, 248 documents, all indexes, and
+zero restore failures. Every collection count matched production, including 42
+Notes and 5 users. The temporary database and all plaintext restore material
+were removed. One earlier admin-only test object was identified by the restore
+exercise and deleted before it was treated as a valid backup.
+
+Installed server components:
+
+```text
+/usr/local/sbin/epinote-backup
+/etc/systemd/system/epinote-backup.service
+/etc/systemd/system/epinote-backup.timer
+/root/.config/epinote-backup/backup.env
+/root/.config/epinote-backup/mongodump.yml
+/root/.config/epinote-backup/gnupg/       public recovery key only
+/var/lib/epinote-backup/last-success.json
+MongoDB user epinote_backup               built-in backup role
+```
+
+The timer is disabled. Do not enable it until a new dedicated service-account
+key passes the permission test below with only `storage.objects.create`:
+
+```text
+storage.objects.create   required
+storage.objects.get      must be absent
+storage.objects.list     must be absent
+storage.objects.delete   must be absent
+storage.buckets.update   must be absent
+```
+
+The supplied key had all five permissions, so its file and cached Cloud SDK
+credentials were removed from Contabo after the one-time verified upload. The
+key remains on the Mac with mode `0600`; it should be replaced or revoked after
+a dedicated uploader is created.
 
 ## 1. Recovery objective
 
@@ -232,3 +300,8 @@ The backup project is complete only when:
 - a real encrypted archive has been restored into an isolated MongoDB target;
 - the measured RPO and RTO meet the targets above; and
 - the recovery steps work without relying on undocumented knowledge.
+
+Current result: encrypted upload and isolated restore are proven. Least-privilege
+recurring upload, lifecycle/retention policy, and a second offline copy of the
+recovery private key remain open. The executable recovery procedure is in
+`docs/operations/EPINOTE_BACKUP_RUNBOOK.md`.

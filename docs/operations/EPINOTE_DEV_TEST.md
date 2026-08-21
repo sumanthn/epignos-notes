@@ -754,3 +754,36 @@ retry, so automated pointer/screenshot verification was not possible. Rendered
 HTML, compiled styling, public links, server enforcement, persistence, cleanup,
 services, and HTTPS behavior were verified. The previous release remains
 available for immediate rollback.
+
+## 2026-08-21 encrypted off-host backup checkpoint
+
+The versioned backup job creates authenticated MongoDB archives, validates that
+the application database is present, packages only approved recovery
+configuration, encrypts everything before upload, and removes its plaintext
+working directory. The matching private recovery key and passphrase remain on
+the Mac; only the public key was installed on Contabo.
+
+The first test archive exposed an incorrect admin-only MongoDB dump and was
+deleted. After correcting the backup connection, the exact encrypted GCS object
+was downloaded, checksum-verified, decrypted on the Mac, and restored into an
+isolated server database. Every production collection count and all indexes
+matched. The isolated database and plaintext restore material were removed.
+
+```text
+bucket / prefix                          gs://databay-personal/epinote/dev-test
+verified object                         epinote-20260821T135146Z.tar.gz.gpg
+encrypted size                          527251 bytes
+encrypted sha256                        62ac8b8820fa8f56090a04b6887e21df1e477fc4cbeda4bce9be48b2e7d93c29
+restore collections / documents         14 / 248
+restore failures / count mismatches     0 / 0
+Notes / users restored                  42 / 5
+service / nginx / MongoDB               active / active / active
+backup timer                            disabled
+server GCP uploader credential          removed
+```
+
+The supplied GCP key was not suitable for unattended use because it could read,
+list, and delete objects and update the bucket. The timer intentionally remains
+disabled until a dedicated bucket-level `Storage Object Creator` identity is
+installed and verified. See `EPINOTE_BACKUP_RUNBOOK.md` for recovery steps and
+remaining operational work.

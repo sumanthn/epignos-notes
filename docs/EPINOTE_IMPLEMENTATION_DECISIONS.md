@@ -564,9 +564,20 @@ prevention, uniform bucket-level access, a tested retention policy, prefix-based
 lifecycle rules, safe failure handling, and monthly restore exercises are part of
 the recovery contract. The private recovery key remains off-server.
 
-This is a recorded design decision, not a claim that backups are already active.
-Implementation inputs and the full acceptance test are in
-`docs/operations/EPINOTE_GCP_BACKUP_PLAN.md`.
+On 2026-08-21, one real encrypted object was uploaded to
+`gs://databay-personal/epinote/dev-test` and restored into an isolated database.
+All 14 application collections, 248 documents, indexes, 42 Notes, and 5 users
+matched production with zero restore failures. The private recovery key remained
+on the Mac.
+
+The supplied GCP identity also had read, list, delete, and bucket-update
+permissions. Its credential and cached Cloud SDK session were therefore removed
+from Contabo after the verified upload, and the recurring timer remains disabled.
+Scheduled backups become active only after a dedicated bucket-level `Storage
+Object Creator` identity passes the least-privilege check. Implementation status,
+the full acceptance evidence, and recovery steps are in
+`docs/operations/EPINOTE_GCP_BACKUP_PLAN.md` and
+`docs/operations/EPINOTE_BACKUP_RUNBOOK.md`.
 
 ## 2026-08-20: evidence-backed Book intelligence direction
 

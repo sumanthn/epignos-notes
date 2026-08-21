@@ -1,0 +1,19 @@
+[Unit]
+Description=Create and upload an encrypted EpiNote backup
+Wants=network-online.target
+After=network-online.target mongod.service
+ConditionPathExists=/root/.config/epinote-backup/backup.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/local/sbin/epinote-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target

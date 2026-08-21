@@ -122,15 +122,17 @@ npm run build
 - [`docs/EPINOTE_AUTH_DESIGN.md`](docs/EPINOTE_AUTH_DESIGN.md) — authentication contract
 - [`docs/EPINOTE_IMPLEMENTATION_DECISIONS.md`](docs/EPINOTE_IMPLEMENTATION_DECISIONS.md) — shipped design decisions
 - [`docs/operations`](docs/operations) — deployment and verification records
+- [`docs/operations/EPINOTE_BACKUP_RUNBOOK.md`](docs/operations/EPINOTE_BACKUP_RUNBOOK.md) — encrypted backup and restore procedure
 - [`deploy/README.md`](deploy/README.md) — versioned-release deployment procedure
 - [`tools/audio-intelligence/README.md`](tools/audio-intelligence/README.md) — audio batch proof of concept
 
 ## Development status
 
-EpiNote is a beta. Email verification, password-reset delivery, encrypted
-off-server backups, attachments, and the complete richer block editor are not
-finished. Review the operational documentation before using this deployment for
-production or sensitive data.
+EpiNote is a beta. One encrypted off-server backup has passed a full restore
+test, but recurring backups remain disabled until an upload-only GCP identity is
+installed. Email verification, password-reset delivery, attachments, and the
+complete richer block editor are not finished. Review the operational
+documentation before using this deployment for production or sensitive data.
 
 ## License
 
