@@ -1,7 +1,7 @@
 # EpiNote Development/Test Deployment
 
 Status: deployed and verified
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 ## Access
 
@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260821-signup-legal-v2
-/opt/epinote/current -> /opt/epinote/releases/20260821-signup-legal-v2
+/opt/epinote/releases/20260821-legal-consent-email-v1
+/opt/epinote/current -> /opt/epinote/releases/20260821-legal-consent-email-v1
 ```
 
 ## Service layout
@@ -790,3 +790,41 @@ enabled. The EpiNote application user cannot read the credential. Replacing it
 with a dedicated bucket-level `Storage Object Creator` identity remains a
 hardening task. See `EPINOTE_BACKUP_RUNBOOK.md` for recovery steps and remaining
 operational work.
+
+## 2026-08-21 existing-user legal review and transactional email
+
+Existing active accounts now review the current Terms and Privacy Notice inside
+their existing authenticated session; no re-registration or Note migration is
+required. A missing version/date redirects page navigation to `/legal-review`
+and rejects ordinary APIs. An unchecked confirmation cannot be submitted.
+Successful acceptance stores both server-selected versions and dates plus one
+idempotent `legalAcceptances` audit record.
+
+A temporary public account was registered, converted to the legacy missing-field
+shape, and exercised through HTTPS. The protected AI-jobs API rejected the
+pending account, false acceptance was rejected, explicit acceptance restored
+API access, and repeating acceptance kept one audit record. The temporary user,
+session, tenant hierarchy, and acceptance record were removed. Existing users
+and their Notes were unchanged.
+
+```text
+release                                  /opt/epinote/releases/20260821-legal-consent-email-v1
+previous release                         /opt/epinote/releases/20260821-signup-legal-v2
+pre-deployment encrypted backup          epinote-20260821T142457Z.tar.gz.gpg
+service / nginx / MongoDB                active / active / active
+public health / compiled asset           200 / 200
+Terms / Privacy / release notes          200 / 200 / 200
+pending protected API                    401
+false / explicit acceptance              400 / 200
+protected API after acceptance           200
+acceptance audit records                 1 after repeated submission
+temporary test identities remaining      0
+quality gates                            58 tests, typecheck, lint, production build
+```
+
+The send-only Resend key is stored only in the mode-`0600` application
+environment. DKIM, SPF, and MX records for `notify.epignos.dev` are publicly
+visible, but Resend still returned `403 domain not verified` during controlled
+delivery tests. No legal notices were sent or marked as sent. Bulk delivery must
+wait for the Resend dashboard to mark the domain verified; provider failure is
+visible in the superadmin action and stops the batch.

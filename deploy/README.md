@@ -28,7 +28,7 @@ AUTH_REQUIRE_EMAIL_VERIFICATION=false
 COOKIE_SECURE=true
 AUTH_HMAC_SECRET
 RESEND_API_KEY
-EMAIL_FROM=EpiNote <no-reply@notify.epignos.dev>
+EMAIL_FROM="EpiNote <no-reply@notify.epignos.dev>"
 OPENROUTER_API_KEY
 OPENROUTER_MODEL=openai/gpt-oss-120b
 OPENROUTER_FAST_MODEL=google/gemini-3.6-flash
