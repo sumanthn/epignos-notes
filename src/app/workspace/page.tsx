@@ -18,6 +18,7 @@ export default async function WorkspacePage() {
   const user = await getSessionUserByToken(cookieStore.get(sessionCookieName())?.value);
 
   if (!user) redirect("/login");
+  if (user.legalAcceptanceRequired) redirect("/legal-review");
   if (isSuperAdminUser(user)) redirect("/admin");
 
   const workspace = await getWorkspacePayload(user);

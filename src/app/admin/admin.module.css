@@ -51,6 +51,17 @@
 .usersPanel td:first-child span { margin-top: 3px; color: #7b8698; }
 .statusPill { display: inline-flex; padding: 4px 7px; border-radius: 999px; background: #f0f3f8; color: #57647a; font-size: 0.62rem; font-weight: 700; text-transform: capitalize; }
 .feedbackPanel { margin-bottom: 18px; }
+.legalPanel { margin-bottom: 18px; }
+.legalNoticeBody { padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 18px; }
+.legalNoticeBody > div { display: flex; align-items: baseline; gap: 9px; }
+.legalNoticeBody strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; font-weight: 500; }
+.legalNoticeBody span { color: #6f7b90; font-size: 0.67rem; line-height: 1.45; }
+.legalNoticeBody button { height: 39px; padding: 0 15px; border: 0; border-radius: 8px; background: var(--cobalt); color: #fff; font: inherit; font-size: 0.68rem; font-weight: 720; cursor: pointer; }
+.legalNoticeBody button:hover { background: #274dd6; }
+.legalNoticeBody button:disabled { background: #b4bfdc; cursor: not-allowed; }
+.legalNoticeBody .legalNoticeError, .legalNoticeBody .legalNoticeSuccess { grid-column: 1 / -1; margin: 0; padding: 9px 11px; border-radius: 8px; font-size: 0.67rem; }
+.legalNoticeError { border: 1px solid #efcccc; background: #fff7f7; color: var(--danger); }
+.legalNoticeSuccess { border: 1px solid #cce4d9; background: #f4fbf7; color: #32765a; }
 .feedbackList { max-height: 620px; overflow: auto; }
 .feedbackItem { padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: start; gap: 28px; border-bottom: 1px solid #edf0f3; }
 .feedbackItem:last-child { border-bottom: 0; }
@@ -78,6 +89,8 @@
   .metricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .twoColumn { grid-template-columns: 1fr; }
   .feedbackItem { grid-template-columns: 1fr; gap: 15px; }
+  .legalNoticeBody { grid-template-columns: 1fr; }
+  .legalNoticeBody .legalNoticeError, .legalNoticeBody .legalNoticeSuccess { grid-column: 1; }
   .feedbackStatus { max-width: 220px; }
 }
 

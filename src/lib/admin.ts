@@ -8,6 +8,11 @@ import {
   isFeedbackType,
   type AdminFeedbackItem,
 } from "./feedback";
+import {
+  PRIVACY_NOTICE_VERSION,
+  TERMS_VERSION,
+  legalAcceptanceVersionKey,
+} from "./legal";
 
 export type AdminDashboard = {
   generatedAt: string;
@@ -16,6 +21,10 @@ export type AdminDashboard = {
     active: number;
     disabled: number;
     newLast7Days: number;
+  };
+  legal: {
+    pendingAcceptance: number;
+    notifiedPendingUsers: number;
   };
   activeSessions: number;
   content: {
@@ -72,6 +81,8 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     activeUsers,
     disabledUsers,
     newUsers,
+    pendingLegalAcceptance,
+    notifiedPendingUsers,
     activeSessions,
     organizations,
     workspaces,
@@ -93,6 +104,25 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     db.collection("users").countDocuments({ status: "active" }),
     db.collection("users").countDocuments({ status: "disabled" }),
     db.collection("users").countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+    db.collection("users").countDocuments({
+      status: "active",
+      $or: [
+        { termsVersion: { $ne: TERMS_VERSION } },
+        { privacyNoticeVersion: { $ne: PRIVACY_NOTICE_VERSION } },
+        { termsAcceptedAt: { $not: { $type: "date" } } },
+        { privacyAcknowledgedAt: { $not: { $type: "date" } } },
+      ],
+    }),
+    db.collection("users").countDocuments({
+      status: "active",
+      legalNoticeVersion: legalAcceptanceVersionKey(),
+      $or: [
+        { termsVersion: { $ne: TERMS_VERSION } },
+        { privacyNoticeVersion: { $ne: PRIVACY_NOTICE_VERSION } },
+        { termsAcceptedAt: { $not: { $type: "date" } } },
+        { privacyAcknowledgedAt: { $not: { $type: "date" } } },
+      ],
+    }),
     db.collection("sessions").countDocuments({
       status: "active",
       expiresAt: { $gt: now },
@@ -213,6 +243,10 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       active: activeUsers,
       disabled: disabledUsers,
       newLast7Days: newUsers,
+    },
+    legal: {
+      pendingAcceptance: pendingLegalAcceptance,
+      notifiedPendingUsers,
     },
     activeSessions,
     content: {

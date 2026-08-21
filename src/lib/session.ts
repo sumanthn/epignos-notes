@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 
 import { ensureDbIndexes, getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
+import { hasCurrentLegalAcceptance } from "@/lib/legal";
 import { isSuperAdminUser, type SystemRole } from "./system-role";
 
 export { isSuperAdminUser } from "./system-role";
@@ -19,6 +20,7 @@ export interface SessionUser {
   displayName: string;
   authVersion: number;
   systemRole: SystemRole;
+  legalAcceptanceRequired: boolean;
 }
 
 export function hashToken(token: string): string {
@@ -38,7 +40,7 @@ export function sessionCookieName(): string {
 }
 
 export async function createSession(
-  user: SessionUser,
+  user: Omit<SessionUser, "legalAcceptanceRequired">,
   request: NextRequest,
 ): Promise<string> {
   await ensureDbIndexes();
@@ -145,10 +147,18 @@ export async function getSessionUserByToken(token?: string): Promise<SessionUser
     displayName: user.displayName,
     authVersion: user.authVersion,
     systemRole: user.systemRole === "superadmin" ? "superadmin" : null,
+    legalAcceptanceRequired: !hasCurrentLegalAcceptance(user),
   };
 }
 
-export function getSessionUser(request: NextRequest): Promise<SessionUser | null> {
+export async function getSessionUser(request: NextRequest): Promise<SessionUser | null> {
+  const user = await getSessionUserByToken(request.cookies.get(sessionCookieName())?.value);
+  return user?.legalAcceptanceRequired ? null : user;
+}
+
+export function getSessionUserAllowingPendingLegal(
+  request: NextRequest,
+): Promise<SessionUser | null> {
   return getSessionUserByToken(request.cookies.get(sessionCookieName())?.value);
 }
 

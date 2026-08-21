@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { ensureDbIndexes, getDb } from "@/lib/db";
 import { mutationRequestError, safeError } from "@/lib/http";
+import { hasCurrentLegalAcceptance } from "@/lib/legal";
 import { getDummyPasswordHash, verifyPassword } from "@/lib/password";
 import { attachSessionCookie, createSession } from "@/lib/session";
 import { ensurePersonalHierarchy } from "@/lib/workspace";
@@ -55,7 +56,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const response = NextResponse.json({
       ok: true,
-      redirectTo: isSuperAdmin ? "/admin" : "/workspace",
+      redirectTo: hasCurrentLegalAcceptance(user)
+        ? isSuperAdmin ? "/admin" : "/workspace"
+        : "/legal-review",
     });
     attachSessionCookie(response, token);
     return response;

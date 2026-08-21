@@ -134,6 +134,14 @@ links directly to both complete documents in a new tab. The server rejects
 missing acceptance and stores its own current versions and server timestamps;
 it does not trust a client-supplied policy version.
 
+Existing active users do not register again. If either stored version or server
+timestamp is missing/outdated, successful login redirects to `/legal-review`.
+The session remains valid for reading the public documents, recording explicit
+acceptance, or signing out, while ordinary application APIs reject access. The
+server chooses the accepted versions and stores one audit record keyed by user
+and both versions. Email may notify a user and link to this page, but an email
+open or link click is never acceptance.
+
 The warning tells users not to add passwords, credentials, payment-card data,
 government identifiers, medical records, or other regulated/highly confidential
 information. It also separates the user's responsibility for uploaded content
@@ -233,8 +241,9 @@ Protected request validation:
 1. Read/hash cookie token.
 2. Require active/unexpired session and active user.
 3. Require session/user `authVersion` match.
-4. Resolve active organization membership and role.
-5. Attach only user/session/organization IDs and role to request context.
+4. Require current legal acceptance for ordinary application APIs.
+5. Resolve active organization membership and role.
+6. Attach only user/session/organization IDs and role to request context.
 
 Never attach password hash, token hash, or a full user document to ordinary
 request context.

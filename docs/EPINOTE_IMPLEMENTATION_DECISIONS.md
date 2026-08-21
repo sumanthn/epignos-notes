@@ -637,7 +637,16 @@ and records server-defined `termsVersion`, `termsAcceptedAt`,
 `privacyNoticeVersion`, and `privacyAcknowledgedAt` values on the new user. This
 is an audit record, not a blanket waiver of EpiNote's responsibilities.
 
-Existing users are not retroactively blocked in this slice. A future material
-policy change can require renewed acceptance using the stored versions, but
-that enforcement should be implemented only when an actual version change is
-published.
+Existing accounts now use the same version contract without re-registration. A
+valid session whose user record lacks either current version or a server date is
+redirected to `/legal-review`; ordinary workspace and administrator APIs remain
+unavailable until acceptance. Terms, Privacy, acceptance, and sign-out remain
+available. The checkbox starts unchecked, and opening an email link is never
+treated as acceptance.
+
+Acceptance updates the compact current-version fields on `users` and upserts one
+separate immutable-keyed `legalAcceptances` audit record. Transactional notices
+contain no Note content and are sent only to active, still-pending accounts that
+have not already received the current version notice. Successful provider IDs
+are recorded for delivery idempotency; provider failures stop the batch and are
+surfaced to the superadmin.

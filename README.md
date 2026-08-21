@@ -93,6 +93,8 @@ variables:
 | `AUTH_REQUIRE_EMAIL_VERIFICATION` | Blocks registration when verification is required but delivery is unavailable |
 | `COOKIE_SECURE` | Enables the secure `__Host-` session cookie outside localhost |
 | `AUTH_HMAC_SECRET` | Private HMAC key for privacy-preserving request identifiers |
+| `RESEND_API_KEY` | Optional server-only transactional email credential |
+| `EMAIL_FROM` | Verified sender used for account-service messages |
 | `OPENROUTER_API_KEY` | Optional server-only AI provider credential |
 | `OPENROUTER_MODEL` | Primary organization model |
 | `OPENROUTER_FAST_MODEL` | Fast supporting model |

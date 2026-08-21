@@ -11,6 +11,8 @@ const schema = z.object({
   AUTH_REQUIRE_EMAIL_VERIFICATION: booleanString.default(false),
   COOKIE_SECURE: booleanString.default(false),
   AUTH_HMAC_SECRET: z.string().min(32),
+  RESEND_API_KEY: z.string().startsWith("re_").optional(),
+  EMAIL_FROM: z.string().min(3).max(200).default("EpiNote <no-reply@notify.epignos.dev>"),
   OPENROUTER_API_KEY: z.string().min(20).optional(),
   OPENROUTER_MODEL: z.string().min(3).default("openai/gpt-oss-120b"),
   OPENROUTER_FAST_MODEL: z.string().min(3).default("google/gemini-3.6-flash"),

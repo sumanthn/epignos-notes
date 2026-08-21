@@ -66,9 +66,11 @@ export default function PrivacyPage() {
           <h2>4. Sharing</h2>
           <p>
             Information may be processed by infrastructure providers needed to host the application,
-            database, network, and—only when requested—AI features. EpiNote may also disclose limited
-            information when legally required or necessary to protect users and the service. EpiNote
-            does not sell personal information and does not share it for behavioral advertising.
+            database, network, transactional email, and—only when requested—AI features. The email
+            provider receives the destination address and limited account-service message needed for
+            delivery; EpiNote does not put Note content in those messages. EpiNote may also disclose
+            limited information when legally required or necessary to protect users and the service.
+            EpiNote does not sell personal information and does not share it for behavioral advertising.
           </p>
         </section>
 

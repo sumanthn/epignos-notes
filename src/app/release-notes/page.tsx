@@ -13,8 +13,19 @@ export const metadata: Metadata = {
 const releases = [
   {
     date: "August 21, 2026",
-    title: "Clearer safety guidance at signup",
+    title: "Existing users can review terms without registering again",
     current: true,
+    changes: [
+      "Signed-in users whose acceptance is missing or outdated see one focused review page before returning to their workspace.",
+      "Agreement requires an unchecked confirmation inside EpiNote; opening an email link alone never counts as acceptance.",
+      "The server stores the exact Terms and Privacy versions, acceptance time, and a separate audit record while leaving existing notes unchanged.",
+      "The superadmin can send idempotent transactional notices only to active users who still need the current review.",
+    ],
+  },
+  {
+    date: "August 21, 2026",
+    title: "Clearer safety guidance at signup",
+    current: false,
     changes: [
       "Registration now clearly warns against storing passwords, credentials, payment-card data, government IDs, medical records, and other sensitive or regulated information.",
       "New plain-language Terms of Use and Privacy Notice explain user-content responsibility, optional AI processing, security limits, retention, and acceptable use.",

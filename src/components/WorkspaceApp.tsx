@@ -264,6 +264,11 @@ export function WorkspaceApp({
   const loadAiJobs = useCallback(async (): Promise<void> => {
     try {
       const response = await fetch("/api/ai/jobs", { cache: "no-store" });
+      if (response.status === 401) {
+        router.push("/legal-review");
+        router.refresh();
+        return;
+      }
       const data = (await response.json()) as {
         jobs?: AiJobNotification[];
       };
@@ -271,7 +276,7 @@ export function WorkspaceApp({
     } catch {
       // Keep the last known notifications during a temporary connection failure.
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void loadAiJobs(), 0);

@@ -149,6 +149,9 @@ termsAcceptedAt
 termsVersion
 privacyAcknowledgedAt
 privacyNoticeVersion
+legalNoticeVersion
+legalNoticeSentAt
+legalNoticeDeliveryId
 authVersion
 createdAt
 updatedAt
@@ -163,6 +166,10 @@ Rules:
 - New public registrations store the server-selected Terms and Privacy Notice
   versions plus server timestamps. The client does not choose the recorded
   version and a missing acceptance is rejected before creating the user.
+- Existing users with missing/outdated versions must accept inside an
+  authenticated EpiNote session. A successful transactional notice records only
+  the current combined version, send time, and provider delivery identifier; it
+  does not record message content.
 - Disabling a user revokes sessions but preserves note attribution.
 - `systemRole` is a platform role, separate from organization membership roles.
 - Public registration always stores a null platform role. A superadmin is created
@@ -177,6 +184,34 @@ Indexes:
 unique { emailNormalized: 1 }
 unique { systemRole: 1 } partial: systemRole = superadmin
        { status: 1, updatedAt: -1 }
+```
+
+### `legalAcceptances`
+
+```text
+_id
+schemaVersion
+userId
+termsVersion
+privacyNoticeVersion
+acceptedAt
+source: authenticated_web
+userAgent
+```
+
+Rules:
+
+- The acceptance endpoint selects both versions and the server timestamp.
+- Link clicks and email delivery are not acceptance.
+- One record exists for a user and exact Terms/Privacy version pair.
+- Current acceptance fields remain on `users` for fast request authorization;
+  this collection preserves versioned audit history.
+
+Indexes:
+
+```text
+unique { userId: 1, termsVersion: 1, privacyNoticeVersion: 1 }
+       { acceptedAt: -1 }
 ```
 
 ### `sessions`

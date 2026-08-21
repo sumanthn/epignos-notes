@@ -4,8 +4,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { AdminSignOutButton } from "@/components/AdminSignOutButton";
 import { AdminFeedbackQueue } from "@/components/AdminFeedbackQueue";
+import { AdminLegalNotices } from "@/components/AdminLegalNotices";
 import { ProductWordmark } from "@/components/ProductWordmark";
 import { getAdminDashboard } from "@/lib/admin";
+import { getEnv } from "@/lib/env";
 import {
   getSessionUserByToken,
   isSuperAdminUser,
@@ -71,6 +73,7 @@ export default async function AdminPage() {
   const cookieStore = await cookies();
   const user = await getSessionUserByToken(cookieStore.get(sessionCookieName())?.value);
   if (!user) redirect("/login");
+  if (user.legalAcceptanceRequired) redirect("/legal-review");
   if (!isSuperAdminUser(user)) notFound();
 
   const dashboard = await getAdminDashboard();
@@ -130,6 +133,18 @@ export default async function AdminPage() {
             <span>{dashboard.feedback.pending} need attention</span>
           </header>
           <AdminFeedbackQueue initialItems={dashboard.feedback.recent} />
+        </section>
+
+        <section className={`${styles.panel} ${styles.legalPanel}`}>
+          <header>
+            <div><p>Legal review</p><h2>Current acceptance</h2></div>
+            <span>Versioned and authenticated</span>
+          </header>
+          <AdminLegalNotices
+            initialPending={dashboard.legal.pendingAcceptance}
+            initialNotified={dashboard.legal.notifiedPendingUsers}
+            emailConfigured={Boolean(getEnv().RESEND_API_KEY)}
+          />
         </section>
 
         <div className={styles.twoColumn}>

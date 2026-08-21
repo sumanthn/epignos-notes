@@ -27,14 +27,18 @@ MONGODB_DB=epignos_dev
 AUTH_REQUIRE_EMAIL_VERIFICATION=false
 COOKIE_SECURE=true
 AUTH_HMAC_SECRET
+RESEND_API_KEY
+EMAIL_FROM=EpiNote <no-reply@notify.epignos.dev>
 OPENROUTER_API_KEY
 OPENROUTER_MODEL=openai/gpt-oss-120b
 OPENROUTER_FAST_MODEL=google/gemini-3.6-flash
 OPENROUTER_LARGE_NOTE_MODEL=deepseek/deepseek-v4-pro
 ```
 
-`AUTH_REQUIRE_EMAIL_VERIFICATION=false` is allowed only on this development
-instance until email delivery exists.
+`RESEND_API_KEY` is a send-only credential and must remain in the protected
+server environment, never MongoDB, Git, or browser code. Transactional email is
+available for legal notices; account email verification remains disabled until
+its token workflow is implemented and tested.
 
 ## Release procedure
 

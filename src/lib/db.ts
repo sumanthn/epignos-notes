@@ -59,6 +59,17 @@ async function createIndexes(): Promise<void> {
         name: "sessions_user_status_expiry",
       },
     ]),
+    db.collection("legalAcceptances").createIndexes([
+      {
+        key: { userId: 1, termsVersion: 1, privacyNoticeVersion: 1 },
+        name: "legal_acceptances_user_versions_unique",
+        unique: true,
+      },
+      {
+        key: { acceptedAt: -1 },
+        name: "legal_acceptances_accepted_at",
+      },
+    ]),
     db.collection("organizations").createIndex(
       { slug: 1 },
       { name: "organizations_slug_unique", unique: true },
