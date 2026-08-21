@@ -35,6 +35,34 @@ export default function LandingPage() {
         <p className="hero-note">Simple notes first. Intelligence when it helps.</p>
       </section>
 
+      <section className="privacy-promise" aria-labelledby="privacy-promise-title">
+        <div className="privacy-promise-heading">
+          <p className="eyebrow">Private by practice</p>
+          <h2 id="privacy-promise-title">Your notes are yours.</h2>
+          <p>Clear protections, with no vague promises.</p>
+        </div>
+        <div className="privacy-promise-items">
+          <article>
+            <span aria-hidden="true">01</span>
+            <h3>No routine human review</h3>
+            <p>People do not routinely read your Notes. Access is limited to support you authorize, security response, or legal obligations.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">02</span>
+            <h3>Never sold or used to train AI</h3>
+            <p>Note content is not sold, used for advertising, or used to train models. Optional AI requests use zero-retention providers.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">03</span>
+            <h3>Encrypted off-site backups</h3>
+            <p>Recovery backups are encrypted before upload, and the private recovery key is kept away from the application server.</p>
+          </article>
+        </div>
+        <p className="privacy-promise-detail">
+          EpiNote is not end-to-end encrypted and is not a vault for secrets. <Link href="/privacy">Read the full privacy notice</Link>.
+        </p>
+      </section>
+
       <section className="product-frame" aria-label="EpiNote workspace preview">
         <div className="preview-topbar">
           <ProductWordmark className="preview-brand" />

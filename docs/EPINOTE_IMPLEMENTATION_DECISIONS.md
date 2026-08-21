@@ -318,7 +318,7 @@ note above 30,000 characters.
 The request size is measured as UTF-8 bytes after constructing the actual user
 message, and the completion allowance grows with the input. Standard requests
 try `openai/gpt-oss-120b`, requests from 30,000 through 130,000 bytes use the
-configurable fast model (`google/gemini-3.6-flash`), and still larger supported
+configurable fast model (`google/gemini-2.5-flash`), and still larger supported
 requests use `deepseek/deepseek-v4-pro`. Standard-model failures retry through
 the fast model; fast-model failures retry through the large-output model. This
 three-tier route reflects live behavior instead of assuming one model is best at
@@ -650,3 +650,27 @@ contain no Note content and are sent only to active, still-pending accounts that
 have not already received the current version notice. Successful provider IDs
 are recorded for delivery idempotency; provider failures stop the batch and are
 surfaced to the superadmin.
+
+## 2026-08-21: enforceable Note privacy promise
+
+EpiNote now makes a precise promise instead of claiming that operator access is
+technically impossible. People do not routinely read Notes. Human access is
+limited to support the user authorizes, a necessary security response, or a
+legal obligation. Note content is not sold, used for advertising, or used by
+EpiNote to train models. The live service is explicitly not described as
+end-to-end encrypted because the application must process readable content for
+save, search, export, and requested intelligence features.
+
+Every OpenRouter call that can contain Note content shares one fail-closed
+provider policy: `data_collection: "deny"` and `zdr: true`. Ordinary saving does
+not call AI. Explicit AI actions fail when no compatible zero-retention provider
+is available rather than falling back to a collecting route. The configured
+fast fallback is `google/gemini-2.5-flash`, verified against a compatible
+zero-retention route; the previous `google/gemini-3.6-flash` route did not meet
+the account's zero-retention policy and was removed.
+
+Off-site recovery backups are encrypted on the Contabo host before upload to
+GCS. Only the public encryption key is present on the server; the private
+recovery key stays on the Mac. The revised Terms and Privacy Notice use version
+`2026-08-21.2`, so acceptance evidence corresponds to the exact published
+promise and existing users must explicitly review it.

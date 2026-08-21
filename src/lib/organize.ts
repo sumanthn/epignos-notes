@@ -1,6 +1,7 @@
 import { Db, ObjectId } from "mongodb";
 import { z } from "zod";
 
+import { OPENROUTER_PRIVATE_PROVIDER } from "@/lib/ai-privacy";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { safeError } from "@/lib/http";
@@ -401,7 +402,7 @@ async function generateProposal(
               },
             },
           },
-          provider: { require_parameters: true },
+          provider: OPENROUTER_PRIVATE_PROVIDER,
           ...(usingLargeModel || usingFastModel
             ? {}
             : { reasoning: { effort: "low", exclude: true } }),

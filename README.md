@@ -103,6 +103,17 @@ variables:
 Never commit real environment files, database URIs, session tokens, API keys,
 video cookies, generated passwords, or backup credentials.
 
+## Note privacy boundary
+
+People do not routinely read user Notes. Limited operator access is reserved for
+user-authorized support, necessary security response, or legal obligations.
+EpiNote does not sell Note content, use it for advertising, or use it to train
+models. Explicit AI actions use OpenRouter routes that deny data collection and
+require zero data retention; requests fail when no compatible route is
+available. Off-site recovery backups are encrypted before upload and require a
+private key kept away from the application server. The live service is not
+end-to-end encrypted and must not be treated as a secrets vault.
+
 ## Verification
 
 Run the complete local verification set before committing:

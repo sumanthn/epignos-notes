@@ -130,6 +130,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               You are responsible for what you upload, for having permission to use it, and
               for decisions based on your notes or AI output. Keep your own copy of important material.
             </p>
+            <p className="registration-privacy-assurance">
+              EpiNote does not routinely read, sell, advertise with, or train models on your Notes.
+              Optional AI uses zero-retention providers, and off-site backups are encrypted before upload.
+            </p>
           </aside>
           <label className="legal-acceptance">
             <input name="acceptedTerms" type="checkbox" required />

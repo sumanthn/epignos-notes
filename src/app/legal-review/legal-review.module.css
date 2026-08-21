@@ -13,6 +13,9 @@
 .documents span, .documents small { display: block; }
 .documents span { font-size: 0.79rem; font-weight: 730; }
 .documents small { margin-top: 5px; color: #748097; font-size: 0.63rem; }
+.privacy { margin-top: 18px; padding: 18px 19px; border: 1px solid #cfe0d6; border-radius: 10px; background: #f6faf7; }
+.privacy strong { color: #315f4c; font-size: 0.75rem; }
+.privacy p { margin: 7px 0 0; color: #586c62; font-size: 0.68rem; line-height: 1.6; }
 .safety { margin-top: 18px; padding: 18px 19px; border: 1px solid #ead9aa; border-radius: 10px; background: #fffaf0; }
 .safety strong { color: #4d4227; font-size: 0.75rem; }
 .safety p { margin: 7px 0 0; color: #6f644d; font-size: 0.68rem; line-height: 1.6; }

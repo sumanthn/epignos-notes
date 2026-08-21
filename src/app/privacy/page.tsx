@@ -24,8 +24,10 @@ export default function PrivacyPage() {
           <h2>The short version</h2>
           <ul>
             <li>EpiNote stores the account information and notes you choose to provide.</li>
-            <li>It does not sell your personal information or use advertising trackers.</li>
-            <li>Relevant note content is sent to an AI provider only when you request an AI feature.</li>
+            <li>People do not routinely read your Notes. Limited access is allowed only for support you authorize, security response, or legal obligations.</li>
+            <li>EpiNote does not sell Note content, use it for advertising, or use it to train AI models.</li>
+            <li>Relevant Note content is sent only when you request an AI feature, using providers that accept zero-retention processing.</li>
+            <li>Off-site recovery backups are encrypted before upload and require a separately stored private key.</li>
             <li>Do not put secrets or sensitive, regulated personal information in EpiNote.</li>
           </ul>
         </section>
@@ -52,13 +54,22 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2>3. AI processing</h2>
+          <h2>3. Note access and AI processing</h2>
+          <p>
+            EpiNote does not routinely inspect or have people read your Notes. A limited operator
+            may access content only when you explicitly authorize it for support, when reasonably
+            necessary to investigate or contain a security incident, or when disclosure is legally
+            required. Access should be limited to what is necessary for that purpose.
+          </p>
           <p>
             Ordinary writing and saving do not require AI. When you explicitly request organization,
             summaries, concept extraction, or another AI feature, EpiNote sends the relevant bounded
-            content and instructions to its configured AI gateway and model provider. Provider
-            processing may occur in another country and is subject to that provider&apos;s service terms.
-            Do not submit sensitive information for AI processing.
+            content and instructions to its configured AI gateway and model provider. EpiNote requires
+            a provider route that declares zero data retention and denies data collection. If no
+            compatible route is available, the AI request fails instead of relaxing that requirement.
+            EpiNote does not use Note content to train models. Provider processing may occur in another
+            country and is subject to that provider&apos;s service terms. Do not submit sensitive information
+            for AI processing.
           </p>
         </section>
 
@@ -99,9 +110,12 @@ export default function PrivacyPage() {
           <h2>7. Security</h2>
           <p>
             EpiNote uses HTTPS, one-way password hashing, secure HTTP-only session cookies, scoped
-            organization/workspace access checks, and restricted service credentials. No internet
-            service can guarantee absolute security, so do not use EpiNote as your only copy or as a
-            vault for sensitive information.
+            organization/workspace access checks, and restricted service credentials. Off-site recovery
+            backups are encrypted before they leave the application server; the private recovery key is
+            stored separately from that server. The live service is not end-to-end encrypted: the server
+            must be able to process Note content to save, search, export, and run features you request.
+            No internet service can guarantee absolute security, so do not use EpiNote as your only copy
+            or as a vault for sensitive information.
           </p>
         </section>
 

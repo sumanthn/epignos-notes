@@ -56,6 +56,15 @@ export function LegalAcceptanceForm() {
         </Link>
       </div>
 
+      <aside className={styles.privacy}>
+        <strong>Your Notes remain yours</strong>
+        <p>
+          People do not routinely read your Notes. EpiNote does not sell them, use them
+          for advertising, or train models on them. Optional AI uses zero-retention
+          providers, and off-site recovery backups are encrypted before upload.
+        </p>
+      </aside>
+
       <aside className={styles.safety}>
         <strong>Keep sensitive information out of EpiNote Beta</strong>
         <p>

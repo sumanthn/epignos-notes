@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { Db, ObjectId } from "mongodb";
 
+import { OPENROUTER_PRIVATE_PROVIDER } from "@/lib/ai-privacy";
 import { validatedBookConceptMap } from "@/lib/book-concepts-schema";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
@@ -354,7 +355,7 @@ async function generateConceptMap(
           },
         },
       },
-      provider: { require_parameters: true },
+      provider: OPENROUTER_PRIVATE_PROVIDER,
       temperature: 0.1,
       max_tokens: 12_000,
     }),
@@ -533,4 +534,3 @@ export async function bookConceptsStatus(db: Db, book: BookForConcepts) {
     job: job ? jobView(job as Parameters<typeof jobView>[0]) : null,
   };
 }
-

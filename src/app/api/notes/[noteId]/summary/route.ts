@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { Db, ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 
+import { OPENROUTER_PRIVATE_PROVIDER } from "@/lib/ai-privacy";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { mutationRequestError, safeError } from "@/lib/http";
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest, route: RouteContext): Promise<N
                 },
               },
             },
-            provider: { require_parameters: true },
+            provider: OPENROUTER_PRIVATE_PROVIDER,
             ...(model === env.OPENROUTER_MODEL
               ? { reasoning: { effort: "low", exclude: true } }
               : {}),

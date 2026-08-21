@@ -31,7 +31,7 @@ RESEND_API_KEY
 EMAIL_FROM="EpiNote <no-reply@notify.epignos.dev>"
 OPENROUTER_API_KEY
 OPENROUTER_MODEL=openai/gpt-oss-120b
-OPENROUTER_FAST_MODEL=google/gemini-3.6-flash
+OPENROUTER_FAST_MODEL=google/gemini-2.5-flash
 OPENROUTER_LARGE_NOTE_MODEL=deepseek/deepseek-v4-pro
 ```
 

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { Db, ObjectId } from "mongodb";
 
+import { OPENROUTER_PRIVATE_PROVIDER } from "@/lib/ai-privacy";
 import { validatedBookCardDeck } from "@/lib/book-cards-schema";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
@@ -338,7 +339,7 @@ async function generateDeck(
           },
         },
       },
-      provider: { require_parameters: true },
+      provider: OPENROUTER_PRIVATE_PROVIDER,
       temperature: 0.15,
       max_tokens: 8_000,
     }),

@@ -148,6 +148,14 @@ information. It also separates the user's responsibility for uploaded content
 and decisions from EpiNote's own non-waivable service, security, and privacy
 responsibilities.
 
+The registration panel also states the current Note privacy practice: no routine
+human reading, sale, advertising use, or model training; explicit AI features
+use zero-retention provider routes; and off-site recovery backups are encrypted
+before upload. The complete documents clarify the narrow operator-access
+exceptions and that the live service is not end-to-end encrypted. Materially
+revised privacy language uses Terms and Privacy version `2026-08-21.2` rather
+than silently changing the text associated with an older acceptance record.
+
 Organization creation happens after verification during onboarding. This avoids
 abandoned organizations/workspaces for unverified addresses.
 

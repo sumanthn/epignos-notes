@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260821-legal-consent-email-v1
-/opt/epinote/current -> /opt/epinote/releases/20260821-legal-consent-email-v1
+/opt/epinote/releases/20260821-private-notes-zdr-v2
+/opt/epinote/current -> /opt/epinote/releases/20260821-private-notes-zdr-v2
 ```
 
 ## Service layout
@@ -425,7 +425,7 @@ Saving notes already supports up to 1,000,000 characters. The former AI route
 rejected notes over 30,000 characters even though their content had saved
 correctly. Organization now measures the complete UTF-8 request. Standard
 requests try `openai/gpt-oss-120b`; requests from 30,000 through 130,000 bytes
-use `google/gemini-3.6-flash`; still larger supported requests use
+use `google/gemini-2.5-flash`; still larger supported requests use
 `deepseek/deepseek-v4-pro`. Failed standard and fast attempts move to the next
 configured tier.
 
@@ -828,3 +828,50 @@ visible, but Resend still returned `403 domain not verified` during controlled
 delivery tests. No legal notices were sent or marked as sent. Bulk delivery must
 wait for the Resend dashboard to mark the domain verified; provider failure is
 visible in the superadmin action and stops the batch.
+
+Later on 2026-08-21, Resend reported `notify.epignos.dev` verified. A controlled
+message was delivered first, followed by the idempotent legal-notice batch for
+all five active users. Successful provider identifiers were recorded; no Note
+content was included in any email.
+
+## 2026-08-21 enforceable Note privacy promise and zero-retention AI
+
+The landing page, signup notice, existing-user legal review, Terms, and Privacy
+Notice now use the same bounded promise: people do not routinely read Notes;
+limited access is reserved for user-authorized support, security response, or
+legal obligation; content is not sold, used for advertising, or used by EpiNote
+to train models. The notice also states that the live service is not end-to-end
+encrypted and must not be treated as a secrets vault.
+
+All four OpenRouter call paths share a provider policy requiring both
+`data_collection: "deny"` and `zdr: true`. Live synthetic checks found compatible
+zero-retention routes for `openai/gpt-oss-120b` (AkashML),
+`deepseek/deepseek-v4-pro` (Ionstream), and `google/gemini-2.5-flash` (Google).
+`google/gemini-3.6-flash` correctly failed with no compatible zero-retention
+route and was removed from the fast-model configuration. AI failure leaves Note
+content unchanged.
+
+The legal documents use revision `2026-08-21.2`; all five active users are
+pending explicit review of that exact text. A temporary public registration
+stored both revised versions and server dates, then its session, hierarchy, and
+user were removed with zero temporary records remaining.
+
+```text
+release                                  /opt/epinote/releases/20260821-private-notes-zdr-v2
+previous release                         /opt/epinote/releases/20260821-private-notes-zdr-v1
+pre-deployment encrypted backup          epinote-20260821T154102Z.tar.gz.gpg
+encrypted backup size / sha256            527696 / 91f4f99ffd12cc3e6096a42e22a16b1fc56b4e6536b318361314998c21ae2e60
+service / nginx / MongoDB                active / active / active
+public health / database                 200 / reachable
+Terms / Privacy / registration           200 / 200 / 200
+release notes / compiled CSS             200 / 200
+stored Terms / Privacy versions          2026-08-21.2 / 2026-08-21.2
+active users pending revised review      5
+temporary test identities remaining      0
+quality gates                            59 tests, typecheck, lint, production build
+```
+
+No in-app browser was connected for screenshot automation. Static and dynamic
+production builds, public rendered copy, compiled client assurance text,
+versioned registration persistence, cleanup, HTTPS endpoints, and services were
+verified. The previous releases remain available for rollback.

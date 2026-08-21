@@ -13,8 +13,19 @@ export const metadata: Metadata = {
 const releases = [
   {
     date: "August 21, 2026",
-    title: "Existing users can review terms without registering again",
+    title: "A concrete privacy promise for Notes",
     current: true,
+    changes: [
+      "EpiNote now states plainly that people do not routinely read Notes and that limited access is reserved for authorized support, security response, or legal obligations.",
+      "Note content is not sold, used for advertising, or used to train models.",
+      "Every optional AI request now requires a zero-retention, non-collecting provider route and fails closed when one is unavailable.",
+      "The privacy notice distinguishes the live service from encrypted off-site recovery backups, whose private recovery key is stored away from the server.",
+    ],
+  },
+  {
+    date: "August 21, 2026",
+    title: "Existing users can review terms without registering again",
+    current: false,
     changes: [
       "Signed-in users whose acceptance is missing or outdated see one focused review page before returning to their workspace.",
       "Agreement requires an unchecked confirmation inside EpiNote; opening an email link alone never counts as acceptance.",

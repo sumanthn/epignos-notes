@@ -47,9 +47,10 @@ export default function TermsPage() {
             all necessary rights and permissions.
           </p>
           <p>
-            EpiNote does not review or endorse user content. You—not Epignos or epignos.dev—are
-            responsible for decisions, publications, or actions based on your content or generated
-            results.
+            EpiNote does not routinely review or endorse user content. Limited human access is allowed
+            only for support you authorize, security response, or legal obligations. You—not Epignos or
+            epignos.dev—are responsible for decisions, publications, or actions based on your content or
+            generated results.
           </p>
         </section>
 
@@ -76,9 +77,11 @@ export default function TermsPage() {
           <h2>6. AI features</h2>
           <p>
             AI features are optional. When you request one, relevant content may be sent to a
-            configured AI provider to produce the result. AI output can be incomplete, inaccurate,
-            biased, or fabricated. Verify important claims and never rely on EpiNote output for
-            medical, legal, financial, safety-critical, or other high-stakes decisions.
+            configured AI provider to produce the result. EpiNote requires zero-retention processing,
+            denies provider data collection, and does not use Note content to train models. If a
+            compatible provider is unavailable, the AI request fails. AI output can be incomplete,
+            inaccurate, biased, or fabricated. Verify important claims and never rely on EpiNote output
+            for medical, legal, financial, safety-critical, or other high-stakes decisions.
           </p>
         </section>
 
@@ -100,7 +103,9 @@ export default function TermsPage() {
             The beta service is provided on an as-available basis and does not promise uninterrupted
             operation, permanent retention, or error-free output. Keep independent copies of
             important information and use export where available. EpiNote may use operational
-            backups, but they are not a substitute for your own copy.
+            backups. Off-site recovery backups are encrypted before upload and require a private
+            recovery key stored separately from the application server, but backups are not a
+            substitute for your own copy.
           </p>
         </section>
 
