@@ -12,9 +12,19 @@ export const metadata: Metadata = {
 
 const releases = [
   {
+    date: "August 21, 2026",
+    title: "Clearer safety guidance at signup",
+    current: true,
+    changes: [
+      "Registration now clearly warns against storing passwords, credentials, payment-card data, government IDs, medical records, and other sensitive or regulated information.",
+      "New plain-language Terms of Use and Privacy Notice explain user-content responsibility, optional AI processing, security limits, retention, and acceptable use.",
+      "Creating an account requires explicit agreement to the Terms and acknowledgement of the Privacy Notice; EpiNote records the accepted versions and time.",
+    ],
+  },
+  {
     date: "August 20, 2026",
     title: "Book Concepts connect the notes",
-    current: true,
+    current: false,
     changes: [
       "Every Book now has a Concepts collection beside Summary Cards, kept above its ordinary Notes.",
       "Generate a compact view of the Book’s important ideas, people, organizations, places, works, and events.",

@@ -17,11 +17,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setSubmitting(true);
 
     const form = new FormData(event.currentTarget);
+    if (registering && form.get("acceptedTerms") !== "on") {
+      setError("Read and accept the Terms of Use and acknowledge the Privacy Notice to continue.");
+      setSubmitting(false);
+      return;
+    }
     const payload = {
       ...(registering
         ? {
             displayName: form.get("displayName"),
             organizationName: form.get("organizationName"),
+            acceptedTerms: true,
           }
         : {}),
       email: form.get("email"),
@@ -112,6 +118,28 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </span>
       </label>
       {registering && <p className="field-help">Use at least 12 characters. Passphrases work well.</p>}
+      {registering && (
+        <>
+          <aside className="registration-safety" aria-labelledby="registration-safety-title">
+            <strong id="registration-safety-title">Keep sensitive information out of EpiNote</strong>
+            <p>
+              Do not add passwords, API or private keys, payment-card data, government IDs,
+              medical records, or other regulated or highly confidential information.
+            </p>
+            <p>
+              You are responsible for what you upload, for having permission to use it, and
+              for decisions based on your notes or AI output. Keep your own copy of important material.
+            </p>
+          </aside>
+          <label className="legal-acceptance">
+            <input name="acceptedTerms" type="checkbox" required />
+            <span>
+              I have read and agree to the <Link href="/terms" target="_blank" rel="noreferrer">Terms of Use</Link>
+              {" "}and acknowledge the <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Notice</Link>.
+            </span>
+          </label>
+        </>
+      )}
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="button auth-submit" type="submit" disabled={submitting}>
         {submitting ? "Please wait…" : registering ? "Create account" : "Sign in"}
@@ -121,6 +149,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <Link href={registering ? "/login" : "/register"}>
           {registering ? "Sign in" : "Create account"}
         </Link>
+      </p>
+      <p className="auth-legal-links">
+        <Link href="/terms">Terms of Use</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/privacy">Privacy Notice</Link>
       </p>
     </form>
   );

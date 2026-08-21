@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ensureDbIndexes, getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { mutationRequestError, safeError } from "@/lib/http";
+import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { hashPassword, validatePassword } from "@/lib/password";
 import { attachSessionCookie, createSession } from "@/lib/session";
 import { ensurePersonalHierarchy } from "@/lib/workspace";
@@ -14,6 +15,7 @@ const inputSchema = z.object({
   organizationName: z.string().trim().min(2).max(100),
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string(),
+  acceptedTerms: z.boolean().default(false),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -33,7 +35,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Enter a valid name, email, and password." }, { status: 400 });
     }
 
-    const { displayName, organizationName, email, password } = parsed.data;
+    const { displayName, organizationName, email, password, acceptedTerms } = parsed.data;
+    if (!acceptedTerms) {
+      return NextResponse.json(
+        { error: "Read and accept the Terms of Use and acknowledge the Privacy Notice to create an account." },
+        { status: 400 },
+      );
+    }
     const passwordError = validatePassword(password, email);
     if (passwordError) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
@@ -57,6 +65,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         systemRole: null,
         emailVerifiedAt: now,
         passwordChangedAt: now,
+        termsAcceptedAt: now,
+        termsVersion: TERMS_VERSION,
+        privacyAcknowledgedAt: now,
+        privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
         authVersion: 1,
         createdAt: now,
         updatedAt: now,

@@ -25,8 +25,8 @@ Certbot 5.7.0
 Active release:
 
 ```text
-/opt/epinote/releases/20260820-book-concepts-v1
-/opt/epinote/current -> /opt/epinote/releases/20260820-book-concepts-v1
+/opt/epinote/releases/20260821-signup-legal-v2
+/opt/epinote/current -> /opt/epinote/releases/20260821-signup-legal-v2
 ```
 
 ## Service layout
@@ -718,3 +718,39 @@ layout could not be automated in this session. The production API workflow,
 authorization boundary, model output validation, persistence, staleness,
 compiled UI assets, services, and public release notes were verified. The prior
 versioned release remains available for immediate rollback.
+
+## 2026-08-21 signup safety and legal acceptance
+
+Registration now places a concise sensitive-information warning immediately
+before an unchecked Terms/Privacy acknowledgement. Public `/terms` and
+`/privacy` pages provide the full plain-language documents. The API rejects
+missing acceptance and stores its own current document versions plus server
+timestamps on each newly created user.
+
+An isolated temporary registration exercised the public HTTPS endpoint twice:
+the first request omitted acceptance and created no account; the second supplied
+explicit acceptance and succeeded. MongoDB contained both `2026-08-21` versions
+and valid server timestamps. The temporary user, session, organization,
+workspace, and system Book were then removed. Existing user data was unchanged.
+
+```text
+release                                  /opt/epinote/releases/20260821-signup-legal-v2
+previous release                         /opt/epinote/releases/20260820-book-concepts-v1
+service / nginx / MongoDB                active / active / active
+local and public health                  200, database reachable
+register / terms / privacy               200 / 200 / 200
+landing and login legal links            present
+missing acceptance                       400, no account created
+explicit acceptance                      201
+stored Terms / Privacy versions          2026-08-21 / 2026-08-21
+stored acceptance timestamps             valid server dates
+temporary users remaining                0
+known npm vulnerabilities                0
+quality gates                            54 tests, typecheck, lint, production build
+```
+
+No connected in-app browser was available after the documented connection
+retry, so automated pointer/screenshot verification was not possible. Rendered
+HTML, compiled styling, public links, server enforcement, persistence, cleanup,
+services, and HTTPS behavior were verified. The previous release remains
+available for immediate rollback.

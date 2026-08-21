@@ -61,6 +61,11 @@ export default function LandingPage() {
           </article>
         </div>
       </section>
+      <footer className="landing-footer">
+        <span>EpiNote Beta</span>
+        <Link href="/terms">Terms of Use</Link>
+        <Link href="/privacy">Privacy Notice</Link>
+      </footer>
     </main>
   );
 }

@@ -145,6 +145,10 @@ status: pending_verification | active | disabled
 systemRole: superadmin | null
 emailVerifiedAt
 passwordChangedAt
+termsAcceptedAt
+termsVersion
+privacyAcknowledgedAt
+privacyNoticeVersion
 authVersion
 createdAt
 updatedAt
@@ -156,6 +160,9 @@ Rules:
 
 - Email normalization is trim plus lowercase.
 - Password hashes use Argon2id and are excluded from normal projections.
+- New public registrations store the server-selected Terms and Privacy Notice
+  versions plus server timestamps. The client does not choose the recorded
+  version and a missing acceptance is rejected before creating the user.
 - Disabling a user revokes sessions but preserves note attribution.
 - `systemRole` is a platform role, separate from organization membership roles.
 - Public registration always stores a null platform role. A superadmin is created

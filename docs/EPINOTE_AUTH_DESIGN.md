@@ -1,8 +1,8 @@
 # EpiNote Authentication Design
 
-Status: proposed authentication contract for implementation review
+Status: active core contract with later account-recovery phases still proposed
 Storage: MongoDB Community 8.0
-Last updated: 2026-08-16
+Last updated: 2026-08-21
 
 ## 1. Goal and scope
 
@@ -126,6 +126,19 @@ email
 password
 terms acceptance when required
 ```
+
+Current public registration requires one unchecked, explicit acknowledgement:
+the user agrees to the versioned Terms of Use and acknowledges the versioned
+Privacy Notice. The registration page first shows a concise safety warning and
+links directly to both complete documents in a new tab. The server rejects
+missing acceptance and stores its own current versions and server timestamps;
+it does not trust a client-supplied policy version.
+
+The warning tells users not to add passwords, credentials, payment-card data,
+government identifiers, medical records, or other regulated/highly confidential
+information. It also separates the user's responsibility for uploaded content
+and decisions from EpiNote's own non-waivable service, security, and privacy
+responsibilities.
 
 Organization creation happens after verification during onboarding. This avoids
 abandoned organizations/workspaces for unverified addresses.

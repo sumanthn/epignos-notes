@@ -609,3 +609,22 @@ This first slice does not silently merge concepts, modify Notes, create global
 workspace identities, or introduce a canvas, graph database, vector database,
 new worker service, or separate queue. Those capabilities must earn their place
 through real usage of the simpler evidence-first view.
+
+## 2026-08-21: layered signup safety and versioned legal acceptance
+
+Registration uses a layered notice instead of placing dense legal text inside
+the form. A short amber safety panel names information that must not be stored in
+EpiNote Beta, explains that users are responsible for content and permissions,
+and reminds them to keep an independent copy. Separate public `/terms` and
+`/privacy` pages provide the full plain-language documents.
+
+The acceptance checkbox is unchecked by default. The browser gives immediate
+feedback, but the API remains authoritative: it rejects absent/false acceptance
+and records server-defined `termsVersion`, `termsAcceptedAt`,
+`privacyNoticeVersion`, and `privacyAcknowledgedAt` values on the new user. This
+is an audit record, not a blanket waiver of EpiNote's responsibilities.
+
+Existing users are not retroactively blocked in this slice. A future material
+policy change can require renewed acceptance using the stored versions, but
+that enforcement should be implemented only when an actual version change is
+published.
